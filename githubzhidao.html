@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>将HTML文件部署到GitHub Pages指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .step-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .step-number {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        .step-title {
+            color: #1f2937; /* Dark gray text */
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .step-description {
+            color: #4b5563; /* Medium gray text */
+            line-height: 1.6;
+        }
+        .code-block {
+            background-color: #1f2937; /* Dark background for code */
+            color: #d1d5db; /* Light gray text for code */
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+        .highlight {
+            color: #fbbf24; /* Amber for highlights */
+            font-weight: 500;
+        }
+        .button-link {
+            display: inline-block;
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            margin-top: 16px;
+        }
+        .button-link:hover {
+            background-color: #4338ca; /* Darker Indigo */
+        }
+        .header {
+            background: linear-gradient(to right, #6366f1, #8b5cf6); /* Gradient header */
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+        .header p {
+            font-size: 1.125rem;
+            color: #e0e7ff; /* Light indigo text */
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280; /* Gray text for footer */
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+        .tip {
+            background-color: #eff6ff; /* Light blue background for tips */
+            border-left: 4px solid #3b82f6; /* Blue border */
+            padding: 16px;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+        }
+        .tip p {
+            color: #1e40af; /* Dark blue text */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 将HTML文件部署到GitHub Pages指南 📄</h1>
+            <p>一步步教您如何轻松地将您的静态HTML页面发布到互联网上！</p>
+        </header>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number">1</div>
+                <div>
+                    <h2 class="step-title">准备工作</h2>
+                    <p class="step-description">
+                        在开始之前，请确保您已准备好以下两项：
+                    </p>
+                    <ul class="list-disc list-inside mt-4 step-description">
+                        <li>一个 <strong class="highlight">GitHub 账户</strong>。如果您还没有，可以访问 <a href="https://github.com/join" target="_blank" class="text-indigo-600 hover:underline">GitHub官网</a> 免费注册一个。</li>
+                        <li>您想要部署的 <strong class="highlight">HTML 文件</strong>。例如，一个名为 `index.html` 的文件。确保您的 HTML 文件是完整的，并且可以在本地浏览器中正常显示。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number">2</div>
+                <div>
+                    <h2 class="step-title">创建新的 GitHub 仓库 (Repository)</h2>
+                    <p class="step-description">
+                        代码仓库是您存放项目文件的地方。
+                    </p>
+                    <ol class="list-decimal list-inside mt-4 step-description space-y-2">
+                        <li>登录您的 GitHub 账户。</li>
+                        <li>点击页面右上角的 "+" 图标，然后选择 <strong class="highlight">"New repository"</strong>。</li>
+                        <li>
+                            为您的仓库命名。一个常见的做法是使用 `<your-username>.github.io` 作为仓库名，这样您的主页链接会更简洁。
+                            如果您只是想部署单个项目，任何名称都可以，例如 `my-awesome-page`。
+                        </li>
+                        <li>（可选）添加描述。</li>
+                        <li>选择 <strong class="highlight">"Public"</strong> (公开仓库)，因为 GitHub Pages 免费版只支持公开仓库。</li>
+                        <li>（可选）勾选 "Add a README file" (这会创建一个说明文件，是个好习惯)。</li>
+                        <li>点击 <strong class="highlight">"Create repository"</strong> 按钮。</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number">3</div>
+                <div>
+                    <h2 class="step-title">上传 HTML 文件</h2>
+                    <p class="step-description">
+                        将您的 HTML 文件添加到新创建的仓库中。
+                    </p>
+                    <ol class="list-decimal list-inside mt-4 step-description space-y-2">
+                        <li>在您的新仓库页面，点击 <strong class="highlight">"Add file"</strong> 按钮，然后选择 <strong class="highlight">"Upload files"</strong>。</li>
+                        <li>
+                            您可以将 HTML 文件拖拽到指定区域，或者点击 <strong class="highlight">"choose your files"</strong> 选择文件。
+                            <div class="tip">
+                                <p>💡 <strong>提示:</strong> 如果您的 HTML 文件名为 `index.html`，它将成为您网站的默认主页。</p>
+                            </div>
+                        </li>
+                        <li>文件上传后，在页面下方找到 "Commit changes" (提交更改) 部分。</li>
+                        <li>（可选）填写提交信息，简要描述您所做的更改 (例如："Add initial HTML file")。</li>
+                        <li>点击 <strong class="highlight">"Commit changes"</strong> 按钮。</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number">4</div>
+                <div>
+                    <h2 class="step-title">启用 GitHub Pages</h2>
+                    <p class="step-description">
+                        这是将您的仓库变成一个可访问网站的关键步骤。
+                    </p>
+                    <ol class="list-decimal list-inside mt-4 step-description space-y-2">
+                        <li>在您的仓库页面，点击顶部的 <strong class="highlight">"Settings"</strong> (设置) 标签页。</li>
+                        <li>在左侧导航栏中，找到并点击 <strong class="highlight">"Pages"</strong> (页面) 选项。</li>
+                        <li>
+                            在 "Build and deployment" (构建和部署) 部分下的 "Source" (源) 设置中，选择您要部署的分支。通常是 <strong class="highlight">`main`</strong> (或 `master`，取决于您的默认分支名称)。
+                        </li>
+                        <li>
+                            选择文件夹。通常是 <strong class="highlight">`/ (root)`</strong>，表示使用仓库的根目录。
+                        </li>
+                        <li>点击 <strong class="highlight">"Save"</strong> (保存) 按钮。</li>
+                        <li>
+                            页面刷新后，您应该会看到一条消息，说明您的站点已准备好发布，或者正在构建中。
+                            <div class="tip">
+                                <p>⏳ <strong>请注意:</strong> GitHub Pages 可能需要几分钟时间来构建和部署您的站点。请耐心等待。</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number">5</div>
+                <div>
+                    <h2 class="step-title">访问您的在线 HTML 页面 🎉</h2>
+                    <p class="step-description">
+                        一旦您的站点成功发布，GitHub Pages 设置页面会显示您的站点链接。
+                    </p>
+                    <ul class="list-disc list-inside mt-4 step-description space-y-2">
+                        <li>
+                            链接的格式通常是： <code class="code-block" style="display: inline; padding: 2px 6px; color: #c026d3;">https://&lt;your-username&gt;.github.io/&lt;repository-name&gt;/</code>
+                        </li>
+                        <li>
+                            如果您将仓库命名为 `<your-username>.github.io` 并且 HTML 文件是 `index.html`，那么链接将是： <code class="code-block" style="display: inline; padding: 2px 6px; color: #c026d3;">https://&lt;your-username&gt;.github.io/</code>
+                        </li>
+                        <li>点击该链接，您就可以在浏览器中看到您部署的 HTML 页面了！</li>
+                    </ul>
+                    <a href="https://github.com" target="_blank" class="button-link">
+                        前往 GitHub 开始实践
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-card">
+            <div class="flex items-start">
+                <div class="step-number" style="background-color: #10b981;">💡</div>
+                <div>
+                    <h2 class="step-title">额外提示</h2>
+                    <ul class="list-disc list-inside mt-4 step-description space-y-2">
+                        <li><strong class="highlight">自定义域名:</strong> GitHub Pages 支持绑定您自己的域名，让您的网站更专业。您可以在 "Pages" 设置中找到相关选项。</li>
+                        <li><strong class="highlight">更新内容:</strong> 如果您想更新您的 HTML 页面，只需将修改后的文件重新上传到 GitHub 仓库并提交更改即可。GitHub Pages 会自动重新部署。</li>
+                        <li><strong class="highlight">CSS 和 JavaScript:</strong> 如果您的 HTML 文件引用了外部的 CSS 或 JavaScript 文件，请确保这些文件也一起上传到仓库中，并使用相对路径正确引用。例如，如果您的 CSS 文件在 `styles` 文件夹下，路径应为 `styles/style.css`。</li>
+                        <li><strong class="highlight">故障排除:</strong> 如果您的页面没有按预期显示，请检查：
+                            <ul class="list-disc list-inside ml-6 mt-2">
+                                <li>HTML 文件名是否为 `index.html` (如果希望它是默认页面)。</li>
+                                <li>GitHub Pages 设置中的分支和文件夹是否正确。</li>
+                                <li>浏览器缓存，尝试强制刷新 (Ctrl+Shift+R 或 Cmd+Shift+R)。</li>
+                                <li>浏览器开发者工具 (F12) 中的控制台是否有错误信息。</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>祝您部署顺利！通过 GitHub Pages 分享您的创意吧！</p>
+            <p>&copy; <span id="currentYear"></span> 指南生成</p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
