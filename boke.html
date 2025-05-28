@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人博客</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* 使用 Inter 字体 */
+            background-color: #f9fafb; /* 淡灰色背景 */
+            color: #1f2937; /* 深灰色文字 */
+        }
+        .post-content h2 {
+            font-size: 1.5em;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+        }
+        .post-content p {
+            line-height: 1.7;
+            margin-bottom: 1em;
+        }
+        .post-content ul {
+            list-style: disc;
+            margin-left: 1.5em;
+            margin-bottom: 1em;
+        }
+        .post-content a {
+            color: #3b82f6; /* 蓝色链接 */
+            text-decoration: underline;
+        }
+        .post-content code {
+            background-color: #e5e7eb; /* 代码块浅灰色背景 */
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+        .post-content pre {
+            background-color: #1f2937; /* 代码块深色背景 */
+            color: #f3f4f6; /* 代码块浅色文字 */
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto; /* 代码过长时可滚动 */
+            margin-bottom: 1em;
+        }
+        .post-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .button {
+            transition: background-color 0.3s ease; /* 平滑过渡效果 */
+        }
+        .button:hover {
+            filter: brightness(90%); /* 鼠标悬停时按钮变暗 */
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease; /* 卡片过渡效果 */
+        }
+        .card:hover {
+            transform: translateY(-5px); /* 鼠标悬停时卡片上移 */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* 增强阴影 */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" id="home-link" class="text-2xl font-bold text-blue-600 hover:text-blue-700">我的博客</a>
+            <div>
+                <a href="#" id="nav-home-link" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">首页</a>
+                <a href="#" id="nav-about-link" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">关于</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 flex-grow">
+        <div id="posts-list-section">
+            <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">最新文章</h1>
+            <div id="posts-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                </div>
+        </div>
+
+        <div id="single-post-section" class="hidden bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+            <button id="back-to-list-button" class="mb-6 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 button">&larr; 返回列表</button>
+            <article id="single-post-content" class="prose lg:prose-xl max-w-none post-content">
+                </article>
+        </div>
+
+        <div id="about-section" class="hidden bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">关于我</h1>
+            <div class="prose lg:prose-xl max-w-none post-content">
+                <p>你好！欢迎来到我的博客。</p>
+                <p>我是一个热衷于分享知识和经验的开发者/写作者。这个博客是我记录学习心得、技术实践和生活感悟的地方。</p>
+                <p>你可以在这里找到关于以下主题的文章：</p>
+                <ul>
+                    <li>Web 开发 (HTML, CSS, JavaScript, React, Vue 等)</li>
+                    <li>后端技术 (Node.js, Python, Java 等)</li>
+                    <li>数据库技术</li>
+                    <li>软件工程与最佳实践</li>
+                    <li>以及一些其他我感兴趣的东西</li>
+                </ul>
+                <p>希望我的分享能对你有所帮助。如果你有任何问题或建议，欢迎随时联系我！</p>
+                <p>你也可以在 <a href="https://github.com/your-username" target="_blank" rel="noopener noreferrer">GitHub</a> 上找到我。</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center p-6 mt-auto">
+        <p>&copy; <span id="current-year"></span> 我的个人博客. 保留所有权利.</p>
+    </footer>
+
+    <script>
+        // 模拟博客文章数据
+        // 在实际应用中，你可能会从 JSON 文件或 API 加载这些数据
+        // 重要提示：下面的第一篇文章中的图片链接是一个占位符。
+        // 请将其替换为你实际的 "模版缩略图1.png" 图片路径。
+        // 例如：如果图片与 HTML 文件在同一目录，则 src="模版缩略图1.png"
+        // 如果在 images 子目录，则 src="images/模版缩略图1.png"
+        const postsData = [
+            {
+                id: 1,
+                title: "探索 Tailwind CSS：快速构建现代化界面的利器",
+                date: "2025-05-27",
+                author: "博客作者",
+                tags: ["CSS", "TailwindCSS", "前端开发"],
+                excerpt: "Tailwind CSS 是一个功能类优先的 CSS 框架，它提供了大量预设的样式类，让开发者可以快速、高效地构建自定义用户界面...",
+                content: `
+                    <img src="https://placehold.co/800x400/aabbcc/000000?text=模版缩略图1.png" alt="模版缩略图1" class="rounded-lg mb-6 shadow-md" onerror="this.src='https://placehold.co/800x400/ff0000/ffffff?text=模版缩略图1.png+加载失败'; this.alt='图片加载失败';">
+                    <p>Tailwind CSS 是一个功能类优先的 CSS 框架，它提供了大量预设的样式类，让开发者可以快速、高效地构建自定义用户界面，而无需编写太多的自定义 CSS。这种方法与传统的组件式框架（如 Bootstrap 或 Foundation）有所不同，它更强调通过组合原子类来创建独特的视觉效果。</p>
+                    
+                    <h2>Tailwind CSS 的核心理念</h2>
+                    <p>Tailwind 的核心理念是“功能类优先”（Utility-First）。这意味着你主要通过在 HTML 元素上添加预定义的类名来控制样式，而不是为每个组件编写专门的 CSS 规则。例如，要设置一个元素的内边距、背景颜色和文本颜色，你可以这样做：</p>
+                    <pre><code class="language-html">&lt;div class="p-6 bg-blue-500 text-white rounded-lg"&gt;
+  这是一个示例 Div。
+&lt;/div&gt;</code></pre>
+                    
+                    <h2>主要优点</h2>
+                    <ul>
+                        <li><strong>开发速度快：</strong> 无需在 CSS 和 HTML 文件之间频繁切换，直接在 HTML 中完成大部分样式工作。</li>
+                        <li><strong>高度可定制：</strong> 虽然提供了大量预设类，但可以通过配置文件 (<code>tailwind.config.js</code>) 轻松定制颜色、间距、字体等，以匹配你的品牌风格。</li>
+                        <li><strong>响应式设计友好：</strong> 内置了强大的响应式设计工具，可以方便地为不同屏幕尺寸应用不同的样式。例如：<code>md:text-lg</code> 表示在中等屏幕及以上尺寸应用更大的字号。</li>
+                        <li><strong>CSS 文件体积小：</strong> 通过 PurgeCSS（现在是 JIT 模式的一部分）等工具，可以在构建时移除未使用的 CSS 类，从而显著减小最终 CSS 文件的大小。</li>
+                        <li><strong>避免命名冲突和样式覆盖：</strong> 由于主要使用功能类，减少了编写自定义 CSS 规则的需求，从而降低了命名冲突和样式覆盖的风险。</li>
+                    </ul>
+
+                    <h2>如何开始使用</h2>
+                    <p>最简单的方式是通过 CDN 引入 Tailwind CSS，就像本示例页面一样。对于更复杂的项目，推荐通过 npm 或 yarn 安装，并集成到你的构建流程中。</p>
+                    <pre><code class="language-html">&lt;!-- 通过 CDN 引入 --&gt;
+&lt;link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"&gt;</code></pre>
+                    <p>或者在项目中安装：</p>
+                    <pre><code class="language-bash">npm install -D tailwindcss
+npx tailwindcss init</code></pre>
+                    <p>然后配置 <code>tailwind.config.js</code> 文件，并在你的主 CSS 文件中引入 Tailwind 的基础、组件和功能类：</p>
+                    <pre><code class="language-css">@tailwind base;
+@tailwind components;
+@tailwind utilities;</code></pre>
+
+                    <h2>总结</h2>
+                    <p>Tailwind CSS 提供了一种现代且高效的方式来构建用户界面。虽然初看起来可能会觉得 HTML 中的类名很多，但一旦熟悉了它的工作方式，你会发现它能极大地提升开发效率和代码的可维护性。如果你正在寻找一种能够快速构建美观、响应式界面的 CSS 解决方案，Tailwind CSS 绝对值得一试。</p>
+                    <p>更多信息请访问 <a href="https://tailwindcss.com/" target="_blank" rel="noopener noreferrer">Tailwind CSS 官方网站</a>。</p>
+                `
+            },
+            {
+                id: 2,
+                title: "JavaScript 异步编程：回调、Promise 与 Async/Await",
+                date: "2025-05-25",
+                author: "博客作者",
+                tags: ["JavaScript", "异步编程", "Promise", "Async/Await"],
+                excerpt: "JavaScript 是一门单线程语言，但它通过异步编程模型处理耗时操作，如网络请求、文件读写等，而不会阻塞主线程...",
+                content: `
+                    <img src="https://placehold.co/800x400/10b981/ffffff?text=JavaScript+异步编程" alt="JavaScript 异步编程" class="rounded-lg mb-6 shadow-md" onerror="this.src='https://placehold.co/800x400/cccccc/333333?text=Image+Not+Found'">
+                    <p>JavaScript 是一门单线程语言，但它通过异步编程模型处理耗时操作，如网络请求、文件读写等，而不会阻塞主线程，从而保证了用户界面的流畅性。本文将介绍 JavaScript 中异步编程的三种主要方式：回调函数、Promise 和 Async/Await。</p>
+
+                    <h2>1. 回调函数 (Callbacks)</h2>
+                    <p>回调函数是最早也是最基础的异步编程模式。一个回调函数是作为参数传递给另一个函数，并在那个函数完成某个操作后被调用执行的函数。</p>
+                    <pre><code class="language-javascript">function fetchData(url, callback) {
+  // 模拟网络请求
+  setTimeout(() => {
+    const data = { message: "数据加载成功！来自 " + url };
+    const error = null; //  假设没有错误
+    if (error) {
+      callback(error, null);
+    } else {
+      callback(null, data);
+    }
+  }, 1000);
+}
+
+fetchData("https://api.example.com/data", (error, data) => {
+  if (error) {
+    console.error("发生错误:", error);
+  } else {
+    console.log("获取数据:", data.message);
+  }
+});</code></pre>
+                    <p><strong>缺点：</strong> 当存在多个嵌套的异步操作时，容易产生“回调地狱”（Callback Hell），代码难以阅读和维护。</p>
+
+                    <h2>2. Promise</h2>
+                    <p>Promise 是 ES6 (ECMAScript 2015) 引入的异步编程解决方案，它代表一个异步操作的最终完成（或失败）及其结果值。Promise 对象有三种状态：</p>
+                    <ul>
+                        <li><strong>Pending (进行中):</strong> 初始状态，既不是成功，也不是失败状态。</li>
+                        <li><strong>Fulfilled (已成功):</strong> 意味着操作成功完成。</li>
+                        <li><strong>Rejected (已失败):</strong> 意味着操作失败。</li>
+                    </ul>
+                    <p>Promise 使用 <code>.then()</code> 方法处理成功的情况，使用 <code>.catch()</code> 方法处理失败的情况。</p>
+                    <pre><code class="language-javascript">function fetchDataWithPromise(url) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const success = Math.random() > 0.2; // 模拟成功或失败
+      if (success) {
+        const data = { message: "Promise 数据加载成功！来自 " + url };
+        resolve(data);
+      } else {
+        reject(new Error("Promise 数据加载失败"));
+      }
+    }, 1000);
+  });
+}
+
+fetchDataWithPromise("https://api.example.com/promise-data")
+  .then(data => {
+    console.log("获取数据 (Promise):", data.message);
+  })
+  .catch(error => {
+    console.error("发生错误 (Promise):", error.message);
+  });</code></pre>
+                    <p>Promise 通过链式调用 <code>.then()</code> 可以在一定程度上解决回调地狱问题，使代码结构更清晰。</p>
+
+                    <h2>3. Async/Await</h2>
+                    <p>Async/Await 是 ES8 (ECMAScript 2017) 引入的，它是基于 Promise 的语法糖，使得异步代码看起来更像同步代码，从而提高了可读性。</p>
+                    <ul>
+                        <li><code>async</code> 关键字用于声明一个异步函数，该函数会隐式返回一个 Promise。</li>
+                        <li><code>await</code> 关键字只能在 <code>async</code> 函数内部使用，它会暂停异步函数的执行，等待 Promise 被解决（fulfilled 或 rejected），然后恢复执行并返回 Promise 的结果。</li>
+                    </ul>
+                    <pre><code class="language-javascript">async function fetchDataAsync(url) {
+  console.log("开始使用 Async/Await 获取数据...");
+  try {
+    const responsePromise = fetchDataWithPromise(url); // fetchDataWithPromise 返回一个 Promise
+    const data = await responsePromise; // 等待 Promise 解决
+    console.log("获取数据 (Async/Await):", data.message);
+    return data;
+  } catch (error) {
+    console.error("发生错误 (Async/Await):", error.message);
+    throw error; // 或者处理错误
+  }
+}
+
+fetchDataAsync("https://api.example.com/async-data");
+</code></pre>
+                    <p>Async/Await 使得异步代码的编写和理解变得更加直观和简单，是现代 JavaScript 中处理异步操作的首选方式。</p>
+
+                    <h2>总结</h2>
+                    <p>从回调函数到 Promise，再到 Async/Await，JavaScript 的异步编程模型不断进化，旨在提供更优雅、更易于管理异步操作的方式。理解这些模式对于编写高效、可维护的 JavaScript 应用至关重要。</p>
+                `
+            },
+            {
+                id: 3,
+                title: "Git 与 GitHub 入门指南：版本控制与协作",
+                date: "2025-05-20",
+                author: "博客作者",
+                tags: ["Git", "GitHub", "版本控制", "协作"],
+                excerpt: "Git 是一个强大的分布式版本控制系统，而 GitHub 是一个基于 Git 的代码托管平台。它们是现代软件开发中不可或缺的工具...",
+                content: `
+                    <img src="https://placehold.co/800x400/6366f1/ffffff?text=Git+与+GitHub+入门" alt="Git 与 GitHub 入门" class="rounded-lg mb-6 shadow-md" onerror="this.src='https://placehold.co/800x400/cccccc/333333?text=Image+Not+Found'">
+                    <p>Git 是一个强大的分布式版本控制系统，而 GitHub 是一个基于 Git 的代码托管平台。它们是现代软件开发中不可或缺的工具，不仅用于代码管理，也广泛应用于文档协作、项目管理等领域。本指南将带你快速入门 Git 和 GitHub 的基本使用。</p>
+
+                    <h2>什么是版本控制？</h2>
+                    <p>版本控制是一种记录一个或若干文件内容变化，以便将来查阅特定版本修订情况的系统。简单来说，它可以帮助你：</p>
+                    <ul>
+                        <li>追踪和记录文件的修改历史。</li>
+                        <li>恢复到之前的某个版本。</li>
+                        <li>比较不同版本之间的差异。</li>
+                        <li>支持多人协作开发，解决代码冲突。</li>
+                    </ul>
+
+                    <h2>Git 基础</h2>
+                    <p>Git 的核心概念包括仓库（Repository）、提交（Commit）、分支（Branch）和合并（Merge）。</p>
+                    
+                    <h3>1. 安装 Git</h3>
+                    <p>首先，你需要在你的计算机上安装 Git。可以从 <a href="https://git-scm.com/downloads" target="_blank" rel="noopener noreferrer">Git 官网</a> 下载适合你操作系统的安装包。</p>
+                    
+                    <h3>2. 配置 Git</h3>
+                    <p>安装完成后，打开终端或命令行工具，配置你的用户名和邮箱：</p>
+                    <pre><code class="language-bash">git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"</code></pre>
+
+                    <h3>3. 创建仓库 (Repository)</h3>
+                    <p>有两种方式创建 Git 仓库：</p>
+                    <ul>
+                        <li><strong>初始化新仓库：</strong> 在项目文件夹下执行 <code>git init</code>。</li>
+                        <li><strong>克隆现有仓库：</strong> 从远程服务器（如 GitHub）复制一个仓库到本地，执行 <code>git clone &lt;repository_url&gt;</code>。</li>
+                    </ul>
+
+                    <h3>4. 基本操作</h3>
+                    <ul>
+                        <li><code>git status</code>: 查看当前仓库的状态，哪些文件被修改过，哪些文件已暂存。</li>
+                        <li><code>git add &lt;file&gt;</code>: 将文件的修改添加到暂存区 (Staging Area)。使用 <code>git add .</code> 可以暂存所有修改。</li>
+                        <li><code>git commit -m "Commit message"</code>: 将暂存区的内容提交到本地仓库，并附带一条描述信息。</li>
+                        <li><code>git log</code>: 查看提交历史。</li>
+                        <li><code>git diff</code>: 查看工作区与暂存区之间的差异，或暂存区与最新提交之间的差异。</li>
+                    </ul>
+
+                    <h3>5. 分支 (Branching)</h3>
+                    <p>分支是 Git 的核心特性之一，它允许你在不影响主线（通常是 <code>main</code> 或 <code>master</code> 分支）的情况下进行独立的开发工作。</p>
+                    <ul>
+                        <li><code>git branch</code>: 查看所有分支。</li>
+                        <li><code>git branch &lt;branch-name&gt;</code>: 创建一个新分支。</li>
+                        <li><code>git checkout &lt;branch-name&gt;</code> 或 <code>git switch &lt;branch-name&gt;</code> (新版 Git): 切换到指定分支。</li>
+                        <li><code>git merge &lt;branch-name&gt;</code>: 将指定分支的修改合并到当前分支。</li>
+                        <li><code>git branch -d &lt;branch-name&gt;</code>: 删除一个已经合并的分支。</li>
+                    </ul>
+
+                    <h2>GitHub 基础</h2>
+                    <p>GitHub 是一个提供 Git 仓库托管服务的网站。它使得团队协作和代码分享变得非常方便。</p>
+
+                    <h3>1. 创建 GitHub 账户</h3>
+                    <p>访问 <a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub 官网</a> 注册一个账户。</p>
+
+                    <h3>2. 创建远程仓库</h3>
+                    <p>在 GitHub 上创建一个新的远程仓库。创建后，GitHub 会提供一个仓库 URL，通常以 <code>.git</code> 结尾。</p>
+
+                    <h3>3. 连接本地仓库与远程仓库</h3>
+                    <p>如果你的本地仓库是新初始化的，需要将其与远程仓库关联：</p>
+                    <pre><code class="language-bash">git remote add origin &lt;remote_repository_url&gt;</code></pre>
+                    <p><code>origin</code> 是远程仓库的默认别名。</p>
+
+                    <h3>4. 推送与拉取</h3>
+                    <ul>
+                        <li><code>git push origin &lt;branch-name&gt;</code>: 将本地分支的提交推送到远程仓库的同名分支。例如 <code>git push origin main</code>。</li>
+                        <li><code>git pull origin &lt;branch-name&gt;</code>: 从远程仓库的指定分支拉取最新的修改并合并到本地当前分支。</li>
+                        <li><code>git fetch origin</code>: 从远程仓库获取最新的元数据和对象，但不会自动合并。</li>
+                    </ul>
+                    
+                    <h3>5. Pull Requests (PR)</h3>
+                    <p>Pull Request 是 GitHub 上的一个核心协作功能。当你完成一个特性开发或 bug 修复后，可以创建一个 PR，请求项目维护者将你的修改合并到主分支。这提供了一个代码审查和讨论的机会。</p>
+
+                    <h2>总结</h2>
+                    <p>Git 和 GitHub 是现代开发流程中不可或缺的工具。熟练掌握它们的基本操作，能够极大地提高个人开发效率和团队协作水平。本指南只是一个入门，Git 和 GitHub 还有更多高级功能等待你去探索和学习。</p>
+                `
+            }
+        ];
+
+        const postsContainer = document.getElementById('posts-container');
+        const postsListSection = document.getElementById('posts-list-section');
+        const singlePostSection = document.getElementById('single-post-section');
+        const singlePostContent = document.getElementById('single-post-content');
+        const backToListButton = document.getElementById('back-to-list-button');
+        const homeLink = document.getElementById('home-link');
+        const navHomeLink = document.getElementById('nav-home-link');
+        const navAboutLink = document.getElementById('nav-about-link');
+        const aboutSection = document.getElementById('about-section');
+        const currentYearSpan = document.getElementById('current-year');
+
+        // 设置当前年份
+        if (currentYearSpan) {
+            currentYearSpan.textContent = new Date().getFullYear();
+        }
+
+        // 函数：渲染文章列表
+        function renderPostsList() {
+            postsListSection.classList.remove('hidden');
+            singlePostSection.classList.add('hidden');
+            aboutSection.classList.add('hidden');
+            postsContainer.innerHTML = ''; // 清空现有文章
+
+            postsData.forEach(post => {
+                const postCard = `
+                    <div class="bg-white p-6 rounded-lg shadow-lg card cursor-pointer" data-post-id="${post.id}">
+                        <img src="${getPostImageUrl(post.content)}" alt="${post.title}" class="rounded-md mb-4 h-48 w-full object-cover" onerror="this.src='https://placehold.co/600x300/cccccc/333333?text=图片未找到'; this.alt='图片占位符';">
+                        <h2 class="text-xl font-semibold mb-2 text-gray-800">${post.title}</h2>
+                        <p class="text-gray-500 text-sm mb-1">作者: ${post.author} | 日期: ${post.date}</p>
+                        <div class="mb-3">
+                            ${post.tags.map(tag => `<span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${tag}</span>`).join('')}
+                        </div>
+                        <p class="text-gray-600 mb-4 text-sm leading-relaxed">${post.excerpt}</p>
+                        <button class="read-more-button text-blue-500 hover:text-blue-700 font-medium" data-post-id="${post.id}">阅读更多 &rarr;</button>
+                    </div>
+                `;
+                postsContainer.innerHTML += postCard;
+            });
+
+            // 为 "阅读更多" 按钮和卡片添加事件监听器
+            document.querySelectorAll('.read-more-button, .card').forEach(element => {
+                element.addEventListener('click', (event) => {
+                    event.preventDefault(); // 防止卡片点击时页面跳转（如果卡片是a标签）
+                    event.stopPropagation(); // 防止事件冒泡
+                    const postId = parseInt(element.dataset.postId);
+                    renderSinglePost(postId);
+                });
+            });
+        }
+
+        // 函数：从文章内容中提取第一张图片 URL
+        function getPostImageUrl(htmlContent) {
+            const match = htmlContent.match(/<img src="([^"]+)"/);
+            // 如果找到图片，则返回其 src，否则返回一个默认的占位符图片
+            return match ? match[1] : 'https://placehold.co/600x300/eeeeee/999999?text=无预览图';
+        }
+
+
+        // 函数：渲染单篇文章
+        function renderSinglePost(postId) {
+            const post = postsData.find(p => p.id === postId);
+            if (post) {
+                postsListSection.classList.add('hidden');
+                aboutSection.classList.add('hidden');
+                singlePostSection.classList.remove('hidden');
+                
+                let tagsHtml = post.tags.map(tag => `<span class="inline-block bg-gray-200 text-gray-700 text-sm font-medium mr-2 mb-2 px-3 py-1 rounded-full">${tag}</span>`).join('');
+
+                singlePostContent.innerHTML = `
+                    <h1 class="text-3xl md:text-4xl font-bold mb-2 text-gray-900">${post.title}</h1>
+                    <p class="text-gray-500 text-sm mb-2">作者: ${post.author} | 发布日期: ${post.date}</p>
+                    <div class="mb-6">${tagsHtml}</div>
+                    ${post.content}
+                `;
+                window.scrollTo(0, 0); // 滚动到页面顶部
+            }
+        }
+
+        // 函数：显示关于页面
+        function showAboutPage() {
+            postsListSection.classList.add('hidden');
+            singlePostSection.classList.add('hidden');
+            aboutSection.classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+        
+        // 事件监听器
+        backToListButton.addEventListener('click', renderPostsList);
+        homeLink.addEventListener('click', (e) => { e.preventDefault(); renderPostsList(); });
+        navHomeLink.addEventListener('click', (e) => { e.preventDefault(); renderPostsList(); });
+        navAboutLink.addEventListener('click', (e) => { e.preventDefault(); showAboutPage(); });
+
+        // 页面加载时初始化文章列表
+        document.addEventListener('DOMContentLoaded', renderPostsList);
+
+    </script>
+</body>
+</html>
