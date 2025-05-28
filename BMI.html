@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个性化膳食指南生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-image: linear-gradient(to top, #f3e7e9 0%, #e3eeff 99%, #e3eeff 100%); /* 淡雅渐变背景 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            width: 90%; /* 响应式宽度 */
+            margin: 0 auto; /* 水平居中 */
+            padding: 2.5rem; /* 增加内边距 */
+            background-color: rgba(255, 255, 255, 0.95); /* 半透明白色背景，增加质感 */
+            border-radius: 1rem; /* 更大的圆角 */
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* 更柔和的阴影 */
+            backdrop-filter: blur(5px); /* 毛玻璃效果 (如果浏览器支持) */
+        }
+        .form-input, .form-select, .form-textarea {
+            border-radius: 0.5rem; /* 统一圆角 */
+            border: 1px solid #d1d5db; /* Tailwind gray-300 */
+            padding: 0.875rem 1.125rem; /* 调整内边距 */
+            width: 100%;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background-color: #f9fafb; /* 输入框浅背景色 */
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            border-color: #4f46e5; /* Tailwind indigo-600 */
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); /* 更明显的聚焦效果 */
+            outline: none;
+            background-color: white;
+        }
+        .btn-primary {
+            background-image: linear-gradient(to right, #6366f1 0%, #8b5cf6 51%, #6366f1 100%); /* 渐变按钮背景 */
+            background-size: 200% auto;
+            color: white;
+            padding: 0.875rem 1.75rem; /* 调整按钮内边距 */
+            border-radius: 0.5rem;
+            font-weight: 600; /* 字体加粗 */
+            text-transform: uppercase; /* 文本大写 */
+            letter-spacing: 0.05em; /* 字符间距 */
+            transition: all 0.4s ease-out; /* 平滑过渡 */
+            box-shadow: 0 4px 15px 0 rgba(79, 70, 229, 0.3); /* 按钮阴影 */
+            border: none;
+        }
+        .btn-primary:hover {
+            background-position: right center; /* 改变渐变方向 */
+            box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.4);
+            transform: translateY(-2px); /* 轻微上浮效果 */
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .loader { /* 更新加载动画样式 */
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            position: relative;
+            animation: rotate 1s linear infinite
+        }
+        .loader::before , .loader::after {
+            content: "";
+            box-sizing: border-box;
+            position: absolute;
+            inset: 0px;
+            border-radius: 50%;
+            border: 5px solid #FFF;
+            animation: prixClipFix 2s linear infinite ;
+        }
+        .loader::after{
+            border-color: #6366f1; /* Tailwind indigo-500 */
+            animation: prixClipFix 2s linear infinite , rotate 0.5s linear infinite reverse;
+            inset: 6px;
+        }
+        @keyframes rotate {
+            0%   {transform: rotate(0deg)}
+            100% {transform: rotate(360deg)}
+        }
+        @keyframes prixClipFix {
+            0%   {clip-path:polygon(50% 50%,0 0,0 0,0 0,0 0,0 0)}
+            25%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 0,100% 0,100% 0)}
+            50%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,100% 100%,100% 100%)}
+            75%  {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 100%)}
+            100% {clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%,0 0)}
+        }
+
+        .results-container {
+            margin-top: 2.5rem;
+            padding: 1.5rem; /* 结果区域内边距 */
+            background-color: #f9fafb; /* 结果区域浅背景 */
+            border-radius: 0.75rem; /* 结果区域圆角 */
+            border: 1px solid #e5e7eb; /* 结果区域边框 */
+        }
+        .results-container h1, .results-container h2 { /* 调整标题大小和颜色 */
+            color: #3730a3; /* Tailwind indigo-800 */
+            border-bottom: 2px solid #a5b4fc; /* Tailwind indigo-300 */
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .results-container h3 {
+            font-size: 1.25rem; /* Tailwind text-xl */
+            font-weight: 600; /* Tailwind semibold */
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #4338ca; /* Tailwind indigo-700 */
+        }
+        .results-container h4 {
+            font-size: 1.1rem; /* Tailwind text-lg */
+            font-weight: 600; /* Tailwind semibold */
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #4f46e5; /* Tailwind indigo-600 */
+        }
+        .results-container p {
+            margin-bottom: 1rem; /* 段落下边距 */
+            line-height: 1.7; /* 增加行高 */
+            color: #374151; /* Tailwind gray-700 */
+        }
+        .results-container ul {
+            list-style-type: none; /* 移除默认列表样式 */
+            padding-left: 0;
+            margin-bottom: 1rem;
+        }
+        .results-container li {
+            margin-bottom: 0.5rem; /* 列表项间距 */
+            padding-left: 1.5rem; /* 左内边距，为图标留空间 */
+            position: relative;
+            color: #4b5563; /* Tailwind gray-600 */
+        }
+        .results-container li::before { /* 自定义列表项图标 */
+            content: "\f00c"; /* Font Awesome check icon */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: #6366f1; /* Tailwind indigo-500 */
+            position: absolute;
+            left: 0;
+            top: 2px;
+        }
+        .results-container strong {
+            font-weight: 600;
+            color: #1e293b; /* Tailwind slate-800 */
+        }
+        .error-message {
+            color: #b91c1c; /* Tailwind red-700 */
+            background-color: #fee2e2; /* Tailwind red-100 */
+            border: 1px solid #fca5a5; /* Tailwind red-300 */
+            padding: 1.25rem; /* 增加内边距 */
+            border-radius: 0.5rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        .form-label { /* 标签样式 */
+            display: block;
+            text-sm font-medium text-gray-700 mb-1; /* 增加下边距 */
+        }
+        .header-icon {
+            font-size: 2.5rem; /* 图标大小 */
+            color: #4f46e5; /* Tailwind indigo-600 */
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="text-center mb-10">
+            <i class="fas fa-utensils header-icon"></i> <h1 class="text-4xl font-bold text-gray-800">个性化膳食指南</h1>
+            <p class="text-gray-600 mt-3 text-lg">输入您的信息，AI 将为您量身定制专属膳食计划。</p>
+        </header>
+
+        <form id="dietForm" class="space-y-6">
+            <div>
+                <label for="age" class="form-label">年龄 (岁)</label>
+                <input type="number" id="age" name="age" class="form-input" placeholder="例如：25" required min="1" max="120">
+            </div>
+
+            <div>
+                <label for="gender" class="form-label">性别</label>
+                <select id="gender" name="gender" class="form-select" required>
+                    <option value="" disabled selected>请选择性别</option>
+                    <option value="male">男性</option>
+                    <option value="female">女性</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="height" class="form-label">身高 (cm)</label>
+                <input type="number" id="height" name="height" class="form-input" placeholder="例如：175" required min="50" max="250">
+            </div>
+
+            <div>
+                <label for="weight" class="form-label">体重 (kg)</label>
+                <input type="number" id="weight" name="weight" class="form-input" step="0.1" placeholder="例如：70.5" required min="10" max="300">
+            </div>
+
+            <div>
+                <label for="activityLevel" class="form-label">活动水平</label>
+                <select id="activityLevel" name="activityLevel" class="form-select" required>
+                    <option value="" disabled selected>请选择活动水平</option>
+                    <option value="sedentary">久坐 (很少或没有运动)</option>
+                    <option value="lightly_active">轻度活动 (每周轻松运动1-3天)</option>
+                    <option value="moderately_active">中度活动 (每周中等强度运动3-5天)</option>
+                    <option value="very_active">积极活动 (每周高强度运动6-7天)</option>
+                    <option value="extra_active">非常积极 (体力劳动者或每日高强度训练)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="dietaryGoal" class="form-label">膳食目标</label>
+                <select id="dietaryGoal" name="dietaryGoal" class="form-select" required>
+                     <option value="" disabled selected>请选择膳食目标</option>
+                    <option value="maintain">维持体重</option>
+                    <option value="lose">减肥</option>
+                    <option value="gain">增肌</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="preferences" class="form-label">饮食偏好/限制 (可选)</label>
+                <textarea id="preferences" name="preferences" rows="3" class="form-textarea" placeholder="例如：不吃海鲜，喜欢鸡肉和蔬菜，对花生过敏"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary w-full">
+                <i class="fas fa-magic mr-2"></i> 生成膳食指南
+            </button>
+        </form>
+
+        <div id="loadingIndicator" class="hidden loader-container py-8">
+            <div class="loader"></div>
+            <p class="text-gray-700 mt-4 text-lg font-medium">正在为您生成膳食指南，请稍候...</p>
+        </div>
+
+        <div id="resultsContainer" class="mt-8 results-container hidden">
+            </div>
+         <div id="errorContainer" class="mt-6">
+            </div>
+
+        <footer class="text-center mt-12 text-sm text-gray-500">
+            <p>&copy; 2024 个性化膳食指南生成器. AI 驱动, 健康生活.</p>
+            <p class="mt-1">本膳食指南由 AI 生成，仅供参考，不能替代专业医疗或营养建议。如有健康问题，请咨询医生或注册营养师。</p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('dietForm');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const errorContainer = document.getElementById('errorContainer');
+
+        // 简单的 Markdown 到 HTML 转换器 (增强版)
+        function simpleMarkdownToHtml(markdown) {
+            let html = markdown;
+
+            // 处理标题 (###, ##, #) - 确保只替换行首的
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // 处理粗体 (**)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // 处理列表项 (* or -)
+            // 这是一个简化的处理，可能不完美处理嵌套列表或复杂情况
+            // 先将所有可能的列表项标记为临时 li
+            html = html.replace(/^[\*\-]\s+(.*$)/gim, '<temp_li>$1</temp_li>');
+
+            // 将连续的 temp_li 替换为 ul 包裹的 li
+            if (html.includes('<temp_li>')) {
+                 let processedHtml = "";
+                 const lines = html.split('\n');
+                 let inList = false;
+
+                 for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim(); // 去除行首尾空格
+                    if (line.startsWith('<temp_li>')) {
+                        if (!inList) {
+                            processedHtml += '<ul>\n';
+                            inList = true;
+                        }
+                        processedHtml += '<li>' + line.replace('<temp_li>', '').replace('</temp_li>', '') + '</li>\n';
+                    } else {
+                        if (inList) {
+                            processedHtml += '</ul>\n';
+                            inList = false;
+                        }
+                        // 对于非列表项，如果不是HTML标签，则包裹在<p>中
+                        if (line.length > 0 && !line.match(/^<([a-z][a-z0-9]*)\b[^>]*>/i)) {
+                             processedHtml += `<p>${line}</p>\n`;
+                        } else if (line.length > 0) {
+                             processedHtml += line + '\n'; // 保留已经是HTML的行
+                        }
+                    }
+                 }
+                 if (inList) { //确保最后一个列表闭合
+                    processedHtml += '</ul>\n';
+                 }
+                 html = processedHtml;
+            } else {
+                 // 如果没有列表，则将非HTML行包裹在<p>中
+                 html = html.split('\n').map(paragraph => {
+                    const trimmedParagraph = paragraph.trim();
+                    if (trimmedParagraph === '') return '';
+                    if (trimmedParagraph.match(/^<([a-z][a-z0-9]*)\b[^>]*>/i)) { // 已经是HTML标签
+                        return trimmedParagraph;
+                    }
+                    return `<p>${trimmedParagraph}</p>`;
+                }).join('\n');
+            }
+            
+            // 清理可能残留的空p标签
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            html = html.replace(/<\/h[1-6]>\s*<p>/g, '</h[1-6]>'); // 避免标题后紧跟空p
+            html = html.replace(/<\/ul>\s*<p>/g, '</ul>'); // 避免列表后紧跟空p
+
+            return html;
+        }
+
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            resultsContainer.innerHTML = ''; 
+            resultsContainer.classList.add('hidden');
+            errorContainer.innerHTML = ''; 
+            loadingIndicator.classList.remove('hidden');
+
+            const formData = new FormData(form);
+            const age = formData.get('age');
+            const gender = formData.get('gender');
+            const genderText = gender === 'male' ? '男性' : '女性';
+            const height = formData.get('height');
+            const weight = formData.get('weight');
+            const activityLevel = formData.get('activityLevel');
+            const dietaryGoal = formData.get('dietaryGoal');
+            const preferences = formData.get('preferences') || '无特殊偏好或限制';
+
+            const activityLevelMap = {
+                'sedentary': "久坐 (很少或没有运动，例如：办公室工作)",
+                'lightly_active': "轻度活动 (每周轻松运动1-3天，例如：散步、轻量家务)",
+                'moderately_active': "中度活动 (每周中等强度运动3-5天，例如：快走、慢跑、游泳、骑自行车)",
+                'very_active': "积极活动 (每周高强度运动6-7天，例如：力量训练、高强度间歇训练、竞技运动)",
+                'extra_active': "非常积极 (体力劳动者或每日两次高强度训练，例如：建筑工人、专业运动员)"
+            };
+            const activityLevelDescription = activityLevelMap[activityLevel];
+
+            const dietaryGoalMap = {
+                'maintain': "维持体重",
+                'lose': "减肥 (目标是每周安全减重0.5-1kg)",
+                'gain': "增肌 (配合力量训练)"
+            };
+            const dietaryGoalText = dietaryGoalMap[dietaryGoal];
+
+            const prompt = `
+您是一位专业的AI营养师。请根据以下个人信息，为用户生成一份详细、科学且易于执行的个性化膳食指南。输出语言为简体中文。
+
+**请严格按照以下结构和要求输出内容，确保所有计算步骤清晰展示，并且膳食建议具体化、多样化：**
+
+# 个性化膳食指南
+
+## 一、身体数据深度解析
+
+### 1. 身体质量指数 (BMI)
+* **计算公式:** BMI = 体重(kg) / (身高(m))^2
+* **您的身高:** ${height} cm (即 ${height/100} m)
+* **您的体重:** ${weight} kg
+* **计算过程:** BMI = ${weight} / (${height/100})^2 = ?
+* **您的BMI值:** [计算结果] kg/m²
+* **BMI分类 (中国成人标准):**
+    * 偏瘦: < 18.5
+    * 健康: 18.5 - 23.9
+    * 超重: 24.0 - 27.9
+    * 肥胖: ≥ 28.0
+* **分析与建议:** [根据计算出的BMI值进行分析，并给出初步建议]
+
+### 2. 基础代谢率 (BMR)
+* **定义:** BMR是身体维持基本生命活动一天所需的最低能量。
+* **计算公式 (Mifflin-St Jeor):**
+    * 男性: BMR = (10 × 体重kg) + (6.25 × 身高cm) - (5 × 年龄岁) + 5
+    * 女性: BMR = (10 × 体重kg) + (6.25 × 身高cm) - (5 × 年龄岁) - 161
+* **您的个人数据:** 年龄 ${age}岁, 性别 ${genderText}, 身高 ${height}cm, 体重 ${weight}kg
+* **计算过程:** BMR = (10 × ${weight}) + (6.25 × ${height}) - (5 × ${age}) ${gender === 'male' ? '+ 5' : '- 161'} = ?
+* **您的BMR值:** [计算结果] 千卡 (kcal)
+
+### 3. 每日总能量消耗 (TDEE)
+* **定义:** TDEE是包括基础代谢、体力活动和食物热效应在内的每日总能量消耗。
+* **您的活动水平:** ${activityLevelDescription}
+* **活动系数:** [根据活动水平选择对应系数: 久坐1.2, 轻度1.375, 中度1.55, 积极1.725, 非常积极1.9]
+* **计算公式:** TDEE = BMR × 活动系数
+* **计算过程:** TDEE = [BMR值] × [活动系数值] = ?
+* **您的TDEE估算值:** [计算结果] 千卡 (kcal)
+
+### 4. 每日推荐摄入热量
+* **您的膳食目标:** ${dietaryGoalText}
+* **热量调整策略:**
+    * 维持体重: 推荐摄入 ≈ TDEE
+    * 减肥: 推荐摄入 ≈ TDEE - 400千卡 (确保不低于BMR或安全下限，例如男性1500kcal，女性1200kcal)
+    * 增肌: 推荐摄入 ≈ TDEE + 400千卡
+* **计算过程:** [根据膳食目标和TDEE进行计算]
+* **每日推荐总热量:** [最终推荐热量值] 千卡 (kcal)
+
+## 二、宏量营养素黄金配比
+
+根据您的每日推荐总热量 **[最终推荐热量值] 千卡**，建议的宏量营养素分配如下：
+
+### 1. 蛋白质 (Protein)
+* **功能:** 构建和修复组织，维持肌肉，增强饱腹感。
+* **推荐摄入量 (克/公斤体重):** [根据膳食目标选择推荐系数: 维持1.0-1.2, 减肥1.2-1.6, 增肌1.6-2.0] 克/公斤
+* **计算过程 (克):** [推荐系数] × ${weight}kg = ? 克
+* **计算过程 (千卡):** [蛋白质克数] × 4千卡/克 = ? 千卡
+* **占总热量百分比:** ([蛋白质热量] / [最终推荐总热量]) × 100% = ? %
+* **您的推荐蛋白质摄入:** 约 [克数结果] 克 (约占总热量 [百分比结果]%)
+
+### 2. 脂肪 (Fat)
+* **功能:** 提供能量，构成细胞膜，帮助脂溶性维生素吸收。
+* **推荐摄入比例:** 占总热量的 20% - 30% (建议取25%)
+* **计算过程 (千卡):** [最终推荐总热量] × 25% = ? 千卡
+* **计算过程 (克):** [脂肪热量] / 9千卡/克 = ? 克
+* **您的推荐脂肪摄入:** 约 [克数结果] 克 (约占总热量 25%)
+* **重点:** 优先选择不饱和脂肪 (如橄榄油、鱼油、坚果)。
+
+### 3. 碳水化合物 (Carbohydrates)
+* **功能:** 主要能量来源，为大脑和肌肉活动供能。
+* **计算过程 (千卡):** [最终推荐总热量] - [蛋白质热量] - [脂肪热量] = ? 千卡
+* **计算过程 (克):** [碳水化合物热量] / 4千卡/克 = ? 克
+* **占总热量百分比:** ([碳水化合物热量] / [最终推荐总热量]) × 100% = ? %
+* **您的推荐碳水化合物摄入:** 约 [克数结果] 克 (约占总热量 [百分比结果]%)
+* **重点:** 优先选择复合碳水化合物 (如全谷物、薯类、豆类、蔬菜水果)。
+
+## 三、个性化膳食方案与食物甄选
+
+### 1. 核心膳食原则
+* **食物多样化:** 每日摄入至少12种食物，每周25种以上。
+* **餐餐有蔬菜:** 保证每日摄入300-500克蔬菜，深色蔬菜占一半。
+* **天天吃水果:** 保证每日摄入200-350克新鲜水果，不能用果汁代替。
+* **谷物为主，全谷优先:** 每日摄入谷薯类250-400克，其中全谷物和杂豆类50-150克。
+* **适量优质蛋白:** 鱼、禽、蛋、瘦肉、奶类、豆制品，均衡搭配。
+* **健康脂肪来源:** 控制烹调用油，多选择植物油，适量摄入坚果。
+* **足量饮水:** 每日饮水1500-1700毫升 (约7-8杯)，少量多次。运动时增加。
+* **控糖限酒:** 不喝或少喝含糖饮料，控制添加糖的摄入。不饮酒或限制饮酒。
+* **少盐少油:** 清淡饮食，成人每日食盐不超过5克，烹调油25-30克。
+* **规律进餐，食不过量:** 保持三餐规律，不暴饮暴食。
+
+### 2. 每日三餐与加餐巧安排
+**您的饮食偏好/限制已记录：${preferences}。以下建议将尽量考虑。**
+
+#### 早餐 (约占总热量 25-30%)
+* **构成建议:** 优质碳水 (全谷物/薯类) + 优质蛋白 (蛋/奶/豆制品) + 少量蔬果 + 少量健康脂肪 (可选坚果)
+* **示例1:** 全麦面包2片 (约70g) + 煮鸡蛋1个 + 低脂牛奶1杯 (250ml) + 小番茄5-6个 + 核桃2个
+* **示例2:** 燕麦片 (50g干燕麦，用开水或牛奶冲泡) + 希腊酸奶 (100g) + 蓝莓 (50g) + 奇亚籽 (5g)
+* **示例3 (中式):** 杂粮粥1碗 (小米、玉米糁等) + 菜包1个 + 豆浆1杯 + 拌黄瓜少量
+
+#### 午餐 (约占总热量 35-40%)
+* **构成建议:** 主食 (米饭/面条/馒头，推荐杂粮) + 大份蔬菜 (至少2种，叶菜+其他) + 适量肉/鱼/豆制品
+* **示例1:** 糙米饭1碗 (约100-130g生米) + 清蒸鲈鱼 (100g) + 蒜蓉西兰花 (150g) + 炒时蔬 (如香菇油菜150g)
+* **示例2:** 荞麦面条1碗 (约80g干面) + 鸡胸肉蔬菜沙拉 (鸡胸肉100g，生菜、紫甘蓝、黄瓜、胡萝卜等200g，橄榄油醋汁)
+* **示例3 (外食参考):** 选择少油少盐菜品，如蒸/烤/卤的肉类，多点一份焯水或清炒蔬菜，主食选杂粮饭。
+
+#### 晚餐 (约占总热量 25-30%)
+* **构成建议:** 少量主食 (易消化为佳) + 充足蔬菜 + 适量易消化蛋白 (鱼虾/豆制品/去皮禽肉)
+* **示例1:** 小份杂蔬炒饭 (米饭80g，加入多种蔬菜丁和少量虾仁) + 冬瓜丸子汤 (丸子选瘦肉或鱼肉)
+* **示例2:** 烤红薯1个 (中等大小约150g) + 蒜蓉蒸鳕鱼 (100g) + 清炒时蔬 (如芥兰150g)
+* **示例3:** 豆腐蔬菜汤面 (少量面条，多放豆腐和蔬菜)
+
+#### 加餐 (可选1-2次，每次约100-200千卡)
+* **时机:** 上下午两餐之间或运动前后。
+* **选择:** 原味酸奶1小杯、水果1份 (苹果/香蕉/橙子)、坚果一小把 (约10-15g)、无糖豆浆、煮玉米小段。
+
+## 四、健康生活方式锦囊
+
+* **科学饮水:** 养成主动饮水习惯，不要等口渴再喝。推荐白开水或淡茶水。
+* **规律作息:** 保证每日7-8小时充足睡眠，有助于身体恢复和激素平衡。
+* **积极运动:** 每周至少进行150分钟中等强度或75分钟高强度有氧运动，配合2-3次抗阻训练。${dietaryGoal === 'gain' ? '增肌目标者请特别注意加强力量训练。' : ''}
+* **细嚼慢咽:** 每餐进食时间建议不少于20分钟，充分咀嚼有助于消化和饱腹感。
+* **学会阅读食品标签:** 关注营养成分表和配料表，选择低钠、低糖、低脂的健康食品。
+* **保持积极心态:** 健康饮食是生活的一部分，享受美食的同时关注健康。
+
+**免责声明:** 本膳食指南由AI生成，基于您提供的信息进行个性化推荐，仅供参考，不能替代执业医师、注册营养师等专业人士的诊断和建议。如有任何健康疑虑或特殊疾病，请务必咨询专业人士。
+`;
+
+            // console.log("Generated Prompt:", prompt);
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = "AIzaSyCAv3pqSyudLzV6HPNsHwf7Fkk4RFZqRo0"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('API Error Response:', errorData);
+                    throw new Error(`API 请求失败，状态码：${response.status}. ${errorData?.error?.message || '未知错误'}`);
+                }
+
+                const result = await response.json();
+                // console.log("API Full Response:", result);
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const rawText = result.candidates[0].content.parts[0].text;
+                    // console.log("Raw API Text Output:", rawText);
+                    const htmlContent = simpleMarkdownToHtml(rawText);
+                    resultsContainer.innerHTML = htmlContent;
+                    resultsContainer.classList.remove('hidden');
+                } else {
+                    console.error('API 响应格式不符合预期:', result);
+                    throw new Error('AI未能生成有效内容，请检查API响应。');
+                }
+
+            } catch (error) {
+                console.error('生成膳食指南时出错:', error);
+                errorContainer.innerHTML = `<div class="error-message"><strong>生成失败：</strong> ${error.message} <br>请稍后再试，或检查输入信息。如果问题持续，请联系技术支持。</div>`;
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
