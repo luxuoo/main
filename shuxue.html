@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三角函数问题交互式解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" xintegrity="sha384-n8MVd4RsNIU0KOVZs3OFDGUCIZVwA/EQXVxECIflSz7MApsylImGZxOSCZA7vepa" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" xintegrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" xintegrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+            background-color: #f8fafc;
+        }
+        .tab-active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            border-color: transparent;
+            color: #6b7280;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        details > summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        details > summary::-webkit-details-marker {
+            display: none;
+        }
+        details summary .icon {
+            transition: transform 0.2s;
+        }
+        details[open] summary .icon {
+            transform: rotate(90deg);
+        }
+        .solution-list li {
+            position: relative;
+            padding-left: 1.5rem;
+        }
+        .solution-list li::before {
+            content: '■';
+            position: absolute;
+            left: 0;
+            top: 0.1rem;
+            color: #3b82f6;
+            font-size: 0.8em;
+        }
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+    <!-- Chosen Palette: Slate and Sky -->
+    <!-- Application Structure Plan: To integrate original problems and detailed solutions, each tab is now a self-contained module. The structure is: 1) Original Problem Statement, 2) Interactive Exploration (the chart), and 3) An expandable "Detailed Analysis" section using a <details> accordion. This promotes a "play-first, then-read" user flow, keeping the UI clean while making deep information accessible on demand. -->
+    <!-- Visualization & Content Choices:
+    (1) Function Max Value: Added problem text. Chart remains for visual intuition. Solution is placed in an accordion for detailed, step-by-step logic. A static point and label now mark the maximum value directly on the chart.
+    (2) Proof: Added problem text. Chart is now interactive and correctly responds to sliders. A dynamic label and point are added to explicitly show the minimum value in the selected range and compare it to cos(theta), making the proof's conclusion visually undeniable.
+    (3) Min-Max Problem: Added problem text. Chart remains to explore the parameter's effect. A static horizontal annotation line at y=3*sqrt(3) is added to visually represent the final answer b_min, providing a constant reference for the changing maximums.
+    This structure separates intuitive exploration from formal analysis, improving pedagogical value. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">三角函数问题交互式解析</h1>
+            <p class="mt-2 text-slate-600">融合交互探索与详细解析，深入理解数学之美</p>
+        </header>
+
+        <div class="mb-8 border-b border-slate-200">
+            <nav class="-mb-px flex justify-center space-x-4 md:space-x-8" aria-label="Tabs">
+                <button id="tab-1-btn" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 text-sm md:text-base tab-active" onclick="switchTab(1)">问题 (1)</button>
+                <button id="tab-2-btn" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 text-sm md:text-base tab-inactive" onclick="switchTab(2)">问题 (2)</button>
+                <button id="tab-3-btn" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 text-sm md:text-base tab-inactive" onclick="switchTab(3)">问题 (3)</button>
+            </nav>
+        </div>
+
+        <main>
+            <!-- Tab 1 Content -->
+            <div id="tab-1-content" class="tab-content">
+                <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-900">问题 (1): 求最大值</h2>
+                    <p class="mb-6 text-slate-700 leading-relaxed">设函数 $f(x) = 5\cos x - \cos 5x$，求 $f(x)$ 在 $[0, \frac{\pi}{4}]$ 的最大值。</p>
+                    
+                    <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-semibold text-lg mb-2 text-slate-800">交互探索</h3>
+                        <p class="text-sm text-slate-600 mb-4">拖动滑块或直接输入数值来观察函数 $f(x)$ 的变化，图表已标出最大值点。</p>
+                        <div class="chart-container mb-6">
+                            <canvas id="chart1"></canvas>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 items-center px-2">
+                             <div class="flex items-center gap-4">
+                                <label for="x-input" class="text-sm font-medium text-slate-700 whitespace-nowrap">$x$ 值:</label>
+                                <input type="number" id="x-input" min="0" max="0.785" step="0.001" class="w-24 p-1.5 border border-slate-300 rounded-md text-sm">
+                                <input id="x-slider" type="range" min="0" max="0.785398" step="0.001" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div id="x-value-display" class="text-center bg-white p-3 rounded-md shadow-sm mt-4">
+                               <span class="font-mono text-sm">$f(x) \approx 5.196$</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <details class="bg-slate-50 rounded-lg">
+                        <summary class="p-4 flex justify-between items-center font-semibold text-slate-800">
+                            详细解析
+                            <span class="icon text-blue-500 transform transition-transform">▶</span>
+                        </summary>
+                        <div class="p-4 border-t border-slate-200 text-slate-700 space-y-4">
+                           <p>我们使用微积分的方法求解。</p>
+                           <ul class="space-y-3 solution-list">
+                               <li><strong>求导数</strong>: 函数的导数为：$f'(x) = -5\sin x + 5\sin 5x = 5(\sin 5x - \sin x)$</li>
+                               <li><strong>求驻点</strong>: 令 $f'(x) = 0$, 则 $\sin 5x = \sin x$。解得 $x = \frac{k\pi}{2}$ 或 $x = \frac{(2k+1)\pi}{6}$。在区间 $[0, \frac{\pi}{4}]$ 内的驻点为 $x=0$ 和 $x=\frac{\pi}{6}$。</li>
+                               <li><strong>比较函数值</strong>: 比较函数在驻点和区间端点的值：<br>
+                               $f(0) = 5\cos(0) - \cos(0) = 4$<br>
+                               $f(\frac{\pi}{6}) = 5\cos(\frac{\pi}{6}) - \cos(\frac{5\pi}{6}) = 3\sqrt{3} \approx 5.196$<br>
+                               $f(\frac{\pi}{4}) = 5\cos(\frac{\pi}{4}) - \cos(\frac{5\pi}{4}) = 3\sqrt{2} \approx 4.243$</li>
+                           </ul>
+                           <p class="pt-2 font-semibold"><strong>结论</strong>: 函数 $f(x)$ 在 $[0, \frac{\pi}{4}]$ 上的最大值为 $3\sqrt{3}$。</p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Tab 2 Content -->
+            <div id="tab-2-content" class="tab-content hidden">
+                 <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-900">问题 (2): 存在性证明</h2>
+                    <p class="mb-6 text-slate-700 leading-relaxed">给定 $\theta \in (0, \pi)$，设 $a$ 为实数，证明：存在 $y \in [a-\theta, a+\theta]$，使得 $\cos y \le \cos\theta$。</p>
+                    
+                    <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-semibold text-lg mb-2 text-slate-800">交互探索</h3>
+                        <p class="text-sm text-slate-600 mb-4">通过滑块或输入框自由设定 $\theta$ 和 $a$ 的值，观察高亮区间与水平线的关系。图表已标出区间内的最小值点以验证命题。</p>
+                        <div class="chart-container mb-6">
+                            <canvas id="chart2"></canvas>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 px-2">
+                            <div class="flex items-center gap-4">
+                                <label for="theta-input" class="text-sm font-medium text-slate-700 whitespace-nowrap">$\theta$ 值:</label>
+                                <input type="number" id="theta-input" min="0.1" max="3.1" step="0.01" class="w-24 p-1.5 border border-slate-300 rounded-md text-sm">
+                                <input id="theta-slider" type="range" min="0.1" max="3.1" step="0.01" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <label for="a-input" class="text-sm font-medium text-slate-700 whitespace-nowrap">$a$ 值:</label>
+                                <input type="number" id="a-input" min="-10" max="10" step="0.01" class="w-24 p-1.5 border border-slate-300 rounded-md text-sm">
+                                <input id="a-slider" type="range" min="-10" max="10" step="0.01" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <details class="bg-slate-50 rounded-lg">
+                        <summary class="p-4 flex justify-between items-center font-semibold text-slate-800">
+                            详细解析 (反证法)
+                            <span class="icon text-blue-500 transform transition-transform">▶</span>
+                        </summary>
+                         <div class="p-4 border-t border-slate-200 text-slate-700 space-y-4">
+                           <ul class="space-y-3 solution-list">
+                               <li><strong>假设</strong>: 假设命题不成立。即，对于任意的 $y \in [a-\theta, a+\theta]$，都有 $\cos y > \cos\theta$。</li>
+                               <li><strong>分析</strong>: 不等式 $\cos y > \cos\theta$ 的解集为 $\bigcup_{k \in \mathbb{Z}} (2k\pi - \theta, 2k\pi + \theta)$。每个区间的长度都是 $2\theta$。</li>
+                               <li><strong>推导</strong>: 根据假设，长度为 $2\theta$ 的闭区间 $[a-\theta, a+\theta]$ 必须被完全包含在某一个长度为 $2\theta$ 的开区间 $(2k\pi - \theta, 2k\pi + \theta)$ 内。这要求 $2k\pi - \theta < a - \theta$ 且 $a + \theta < 2k\pi + \theta$，化简得 $2k\pi < a$ 且 $a < 2k\pi$。</li>
+                           </ul>
+                           <p class="pt-2 font-semibold"><strong>结论</strong>: $a$ 不可能同时大于并小于同一个数，产生矛盾。因此初始假设不成立，原命题得证。</p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <!-- Tab 3 Content -->
+            <div id="tab-3-content" class="tab-content hidden">
+                 <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4 text-slate-900">问题 (3): 求参数最小值</h2>
+                    <p class="mb-6 text-slate-700 leading-relaxed">若存在 $\phi$ 使得对任意 $x$，都有 $5\cos x - \cos(5x+\phi) \le b$，求 $b$ 的最小值。</p>
+                    
+                    <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                        <h3 class="font-semibold text-lg mb-2 text-slate-800">交互探索</h3>
+                        <p class="text-sm text-slate-600 mb-4">通过滑块或输入框改变参数 $\phi$ 的值，观察函数最大值的变化。红色虚线代表 $b$ 的最小值 $3\sqrt{3}$。</p>
+                        <div class="chart-container mb-6">
+                            <canvas id="chart3"></canvas>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 items-center px-2">
+                            <div class="flex items-center gap-4">
+                                <label for="phi-input" class="text-sm font-medium text-slate-700 whitespace-nowrap">$\phi$ 值:</label>
+                                <input type="number" id="phi-input" min="0" max="6.28" step="0.01" class="w-24 p-1.5 border border-slate-300 rounded-md text-sm">
+                                <input id="phi-slider" type="range" min="0" max="6.28" step="0.01" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div id="max-h-display" class="text-center bg-white p-3 rounded-md shadow-sm mt-4">
+                                 <span class="font-mono text-sm">当前函数最大值 $M(\phi) \approx 5.196$</span>
+                            </div>
+                         </div>
+                    </div>
+
+                    <details class="bg-slate-50 rounded-lg">
+                        <summary class="p-4 flex justify-between items-center font-semibold text-slate-800">
+                            详细解析
+                            <span class="icon text-blue-500 transform transition-transform">▶</span>
+                        </summary>
+                         <div class="p-4 border-t border-slate-200 text-slate-700 space-y-4">
+                            <p>此问题等价于求解 $b_{min} = \min_{\phi} \left( \max_{x} (5\cos x - \cos(5x+\phi)) \right)$。</p>
+                           <ul class="space-y-3 solution-list">
+                               <li><strong>求内部最大值</strong>: 令 $h(x, \phi) = 5\cos x - \cos(5x+\phi)$。对 $x$ 求导并令其为 0，可知函数的极大值点满足 $5x+\phi = \pi - x + 2k\pi$ 且 $\cos x > 0$。在这些点上，$\cos(5x+\phi) = -\cos x$，故极大值为 $h(x) = 6\cos x$。</li>
+                               <li><strong>求外部最小值</strong>: 问题转化为求 $\min_{\phi} \left( \max_{k} \{ 6\cos x_k \} \right)$，其中 $x_k = \frac{(2k+1)\pi - \phi}{6}$ 且 $\cos x_k > 0$。为使最大值最小，采样点应均匀分布在余弦函数波峰两侧，此时最小的最大余弦值为 $\cos(\frac{\pi}{6})=\frac{\sqrt{3}}{2}$。</li>
+                           </ul>
+                           <p class="pt-2 font-semibold"><strong>结论</strong>: $b$ 的最小值为 $6 \times \frac{\sqrt{3}}{2} = 3\sqrt{3}$。这在 $\phi=0$ 时达到，与问题 (1) 的结果一致。</p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let chart1, chart2, chart3;
+        const katexOptions = {
+          delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+          ],
+          throwOnError : false
+        };
+
+        const f = (x) => 5 * Math.cos(x) - Math.cos(5 * x);
+
+        function setupChart1() {
+            const ctx = document.getElementById('chart1').getContext('2d');
+            const labels = [];
+            const data = [];
+            for (let i = 0; i <= Math.PI / 4 + 0.01; i += (Math.PI / 4) / 100) {
+                labels.push(i);
+                data.push(f(i));
+            }
+
+            chart1 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'f(x)',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2.5,
+                        tension: 0.1,
+                        pointRadius: 0,
+                    }, {
+                        label: '当前点',
+                        data: [{ x: Math.PI/6, y: f(Math.PI/6) }],
+                        backgroundColor: '#ef4444',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        type: 'scatter'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            grid: { display: false },
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    if (value.toFixed(3) === (Math.PI/6).toFixed(3)) return 'π/6';
+                                    if (value.toFixed(3) === (Math.PI/4).toFixed(3)) return 'π/4';
+                                    if (value === 0) return '0';
+                                    return '';
+                                }
+                            }
+                        },
+                        y: { grid: { color: '#e2e8f0' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                         annotation: {
+                            annotations: {
+                                maxPoint: {
+                                    type: 'point',
+                                    xValue: Math.PI / 6,
+                                    yValue: 3 * Math.sqrt(3),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    radius: 6,
+                                    borderColor: 'white',
+                                    borderWidth: 2,
+                                },
+                                maxLabel: {
+                                    type: 'label',
+                                    xValue: Math.PI / 6,
+                                    yValue: 3 * Math.sqrt(3),
+                                    content: ['最大值 (π/6, 3√3)'],
+                                    font: { size: 12 },
+                                    color: 'black',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                    xAdjust: -60,
+                                    yAdjust: -25,
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateXControls(0.523599);
+        }
+        
+        function updateXControls(xVal) {
+            const x = parseFloat(xVal);
+            const y = f(x);
+            
+            document.getElementById('x-slider').value = x;
+            document.getElementById('x-input').value = x.toFixed(3);
+
+            chart1.data.datasets[1].data = [{ x, y }];
+            chart1.update('none');
+
+            const xDisplay = document.getElementById('x-value-display');
+            xDisplay.innerHTML = `<span class="font-mono text-sm">$f(x) \\approx ${y.toFixed(3)}$</span>`;
+            renderMathInElement(xDisplay, katexOptions);
+        }
+
+        function setupChart2() {
+            const ctx = document.getElementById('chart2').getContext('2d');
+            const labels = [];
+            const data = [];
+            for (let i = -12; i <= 12; i += 0.1) {
+                labels.push(i);
+                data.push(Math.cos(i));
+            }
+
+            chart2 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'cos(y)',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', grid: { display: false } },
+                        y: { min: -1.1, max: 1.1, grid: { color: '#e2e8f0' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                        annotation: {
+                            annotations: {
+                                cosThetaLine: {
+                                    type: 'line',
+                                    yMin: 0.5,
+                                    yMax: 0.5,
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: { content: 'cos(θ)', enabled: true, position: 'end', backgroundColor: 'rgba(239,68,68,0.8)' }
+                                },
+                                intervalBox: {
+                                    type: 'box',
+                                    xMin: -1,
+                                    xMax: 1,
+                                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                                    borderColor: 'rgba(59, 130, 246, 0.4)',
+                                    borderWidth: 1
+                                },
+                                minPoint: {
+                                    type: 'point',
+                                    xValue: 0,
+                                    yValue: 1,
+                                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                    radius: 6,
+                                    borderColor: 'white',
+                                    borderWidth: 2,
+                                },
+                                minLabel: {
+                                    type: 'label',
+                                    xValue: 0,
+                                    yValue: 1,
+                                    backgroundColor: 'rgba(255,255,255,0.7)',
+                                    content: ['区间最小值'],
+                                    font: {size: 12},
+                                    yAdjust: -20
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateChart2Controls(1.047, 0);
+        }
+
+        function updateChart2Controls(theta, a) {
+            if (!chart2) return;
+            
+            document.getElementById('theta-slider').value = theta;
+            document.getElementById('theta-input').value = theta;
+            document.getElementById('a-slider').value = a;
+            document.getElementById('a-input').value = a;
+
+            const cosTheta = Math.cos(theta);
+            const xMin = a - theta;
+            const xMax = a + theta;
+
+            let yMinVal = 1;
+            let yMinX = a;
+
+            const k_min = Math.ceil((xMin - Math.PI) / (2 * Math.PI));
+            const k_max = Math.floor((xMax - Math.PI) / (2 * Math.PI));
+            if (k_min <= k_max) {
+                yMinVal = -1;
+                yMinX = (2 * k_min + 1) * Math.PI;
+            } else {
+                yMinVal = Math.min(Math.cos(xMin), Math.cos(xMax));
+                yMinX = Math.cos(xMin) < Math.cos(xMax) ? xMin : xMax;
+            }
+            
+            const annotations = chart2.options.plugins.annotation.annotations;
+            annotations.cosThetaLine.yMin = cosTheta;
+            annotations.cosThetaLine.yMax = cosTheta;
+            annotations.intervalBox.xMin = xMin;
+            annotations.intervalBox.xMax = xMax;
+            
+            annotations.minPoint.xValue = yMinX;
+            annotations.minPoint.yValue = yMinVal;
+            
+            annotations.minLabel.xValue = yMinX;
+            annotations.minLabel.yValue = yMinVal;
+            annotations.minLabel.content = [`区间内最小值 ≈ ${yMinVal.toFixed(2)}`, `cos(θ) ≈ ${cosTheta.toFixed(2)}`];
+            
+            chart2.update();
+        }
+
+        function setupChart3() {
+            const ctx = document.getElementById('chart3').getContext('2d');
+            const h = (x, phi) => 5 * Math.cos(x) - Math.cos(5 * x + phi);
+            
+            const labels = [];
+            const data = [];
+             for (let i = -2 * Math.PI; i <= 2 * Math.PI; i += (4*Math.PI)/200) {
+                labels.push(i);
+                data.push(h(i, 0));
+            }
+            
+            chart3 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'h(x, φ)',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', grid: { display: false } },
+                        y: { min: -6, max: 6, grid: { color: '#e2e8f0' } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                        annotation: {
+                            annotations: {
+                                b_min_line: {
+                                    type: 'line',
+                                    yMin: 3 * Math.sqrt(3),
+                                    yMax: 3 * Math.sqrt(3),
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 2,
+                                    borderDash: [6, 6],
+                                    label: { content: 'b 的最小值 = 3√3', enabled: true, position: 'start', backgroundColor: 'rgba(239,68,68,0.8)' }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateChart3Controls(0);
+        }
+        
+        function updateChart3Controls(phi){
+            if (!chart3) return;
+            
+            document.getElementById('phi-slider').value = phi;
+            document.getElementById('phi-input').value = phi;
+
+            const h = (x, p) => 5 * Math.cos(x) - Math.cos(5 * x + p);
+            
+            const newData = [];
+            let maxVal = -Infinity;
+            chart3.data.labels.forEach(x => {
+                const val = h(x, phi);
+                newData.push(val);
+                if(val > maxVal) maxVal = val;
+            });
+            
+            chart3.data.datasets[0].data = newData;
+            chart3.update();
+            
+            const display = document.getElementById('max-h-display');
+            display.innerHTML = `<span class="font-mono text-sm">当前函数最大值 $M(\\phi) \\approx ${maxVal.toFixed(3)}$</span>`;
+            renderMathInElement(display, katexOptions);
+        }
+
+        function switchTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabIndex}-content`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('tab-inactive');
+            });
+            document.getElementById(`tab-${tabIndex}-btn`).classList.add('tab-active');
+            document.getElementById(`tab-${tabIndex}-btn`).classList.remove('tab-inactive');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMathInElement(document.body, katexOptions);
+
+            setupChart1();
+            setupChart2();
+            setupChart3();
+            
+            // Sync logic from input to slider and chart
+            document.getElementById('x-input').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val >= 0 && val <= 0.785398) updateXControls(val);
+            });
+            document.getElementById('x-slider').addEventListener('input', (e) => updateXControls(e.target.value));
+
+            document.getElementById('theta-input').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val >= 0.1 && val <= 3.1) {
+                    updateChart2Controls(val, parseFloat(document.getElementById('a-input').value));
+                }
+            });
+            document.getElementById('theta-slider').addEventListener('input', (e) => {
+                updateChart2Controls(parseFloat(e.target.value), parseFloat(document.getElementById('a-input').value));
+            });
+
+            document.getElementById('a-input').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val >= -10 && val <= 10) {
+                     updateChart2Controls(parseFloat(document.getElementById('theta-input').value), val);
+                }
+            });
+            document.getElementById('a-slider').addEventListener('input', (e) => {
+                 updateChart2Controls(parseFloat(document.getElementById('theta-input').value), parseFloat(e.target.value));
+            });
+
+            document.getElementById('phi-input').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && val >= 0 && val <= 6.28) updateChart3Controls(val);
+            });
+            document.getElementById('phi-slider').addEventListener('input', (e) => updateChart3Controls(e.target.value));
+        });
+
+    </script>
+</body>
+</html>
