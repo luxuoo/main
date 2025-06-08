@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>响应式俄罗斯方块</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            touch-action: manipulation; /* 防止双击缩放 */
+        }
+        .touch-button {
+            transition: background-color 0.1s ease, transform 0.1s ease;
+        }
+        .touch-button:active {
+            transform: scale(0.95);
+            background-color: #4a5568; /* Tailwind gray-700 */
+        }
+        #game-board {
+            touch-action: none; /* 防止在游戏区域滑动时滚动页面 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-lg mx-auto flex flex-col items-center">
+        <h1 class="text-4xl font-bold mb-4 tracking-wider">俄罗斯方块</h1>
+
+        <div class="w-full flex flex-row items-start justify-center gap-4">
+            <!-- 游戏主区域 -->
+            <div class="relative">
+                <canvas id="game-board" class="bg-gray-800 rounded-lg shadow-2xl border-2 border-gray-700"></canvas>
+                <div id="game-over-modal" class="absolute inset-0 bg-black bg-opacity-75 flex-col items-center justify-center hidden">
+                    <h2 class="text-4xl font-bold text-red-500">游戏结束</h2>
+                    <p class="text-xl mt-2">分数: <span id="final-score">0</span></p>
+                    <button id="restart-button" class="mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold text-xl transition-transform transform hover:scale-105">重新开始</button>
+                </div>
+            </div>
+
+            <!-- 游戏信息和下一个方块预览 -->
+            <div class="w-1/3 flex flex-col gap-4">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg text-center">
+                    <h2 class="text-xl font-bold mb-2">分数</h2>
+                    <p id="score" class="text-3xl font-mono">0</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg text-center">
+                    <h2 class="text-xl font-bold mb-2">下一个</h2>
+                    <canvas id="next-piece-canvas" class="mx-auto"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 移动端触摸控制 -->
+        <div id="touch-controls" class="mt-6 grid grid-cols-3 gap-2 w-full max-w-sm md:hidden">
+            <div class="col-span-1"></div>
+            <button id="rotate-button" class="touch-button bg-gray-800 text-white p-4 rounded-lg shadow-lg flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+            <div class="col-span-1"></div>
+
+            <button id="left-button" class="touch-button bg-gray-800 text-white p-4 rounded-lg shadow-lg flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button id="down-button" class="touch-button bg-gray-800 text-white p-4 rounded-lg shadow-lg flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+            </button>
+            <button id="right-button" class="touch-button bg-gray-800 text-white p-4 rounded-lg shadow-lg flex justify-center items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        </div>
+        <p class="mt-4 text-gray-400 text-sm hidden md:block">使用方向键移动和旋转方块</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-board');
+            const context = canvas.getContext('2d');
+            const nextCanvas = document.getElementById('next-piece-canvas');
+            const nextContext = nextCanvas.getContext('2d');
+            const scoreElement = document.getElementById('score');
+            const gameOverModal = document.getElementById('game-over-modal');
+            const finalScoreElement = document.getElementById('final-score');
+            const restartButton = document.getElementById('restart-button');
+
+            const COLS = 10;
+            const ROWS = 20;
+            let blockSize; // Block size will be calculated dynamically
+
+            let board = [];
+            let score = 0;
+            let gameOver = false;
+            let currentPiece;
+            let nextPiece;
+
+            const PIECES = [
+                { shape: [[1, 1, 1, 1]], color: '#00F0F0' }, // I
+                { shape: [[1, 1, 0], [0, 1, 1]], color: '#F0A000' }, // Z
+                { shape: [[0, 1, 1], [1, 1, 0]], color: '#00F000' }, // S
+                { shape: [[1, 1, 1], [0, 1, 0]], color: '#A000F0' }, // T
+                { shape: [[1, 1], [1, 1]], color: '#F0F000' },       // O
+                { shape: [[1, 0, 0], [1, 1, 1]], color: '#0000F0' }, // L
+                { shape: [[0, 0, 1], [1, 1, 1]], color: '#F00000' }  // J
+            ];
+
+            function resizeGame() {
+                const screenHeight = window.innerHeight * 0.9;
+                const screenWidth = window.innerWidth;
+                
+                const gameArea = document.querySelector('.w-full.max-w-lg');
+                const availableWidth = gameArea.clientWidth * (2/3); // Game board takes up 2/3 of the width
+
+                // Calculate block size based on both height and width to fit the screen
+                const blockSizeByHeight = Math.floor((screenHeight - 100) / ROWS);
+                const blockSizeByWidth = Math.floor(availableWidth / COLS);
+                blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
+                
+                // Set canvas dimensions
+                canvas.width = COLS * blockSize;
+                canvas.height = ROWS * blockSize;
+                context.scale(blockSize, blockSize);
+
+                // Set next piece canvas dimensions
+                nextCanvas.width = 4 * blockSize;
+                nextCanvas.height = 4 * blockSize;
+                nextContext.scale(blockSize, blockSize);
+
+                draw();
+                drawNextPiece();
+            }
+
+            function createBoard() {
+                return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            }
+
+            function getRandomPiece() {
+                const type = Math.floor(Math.random() * PIECES.length);
+                const piece = PIECES[type];
+                return {
+                    shape: piece.shape,
+                    color: piece.color,
+                    x: Math.floor(COLS / 2) - Math.floor(piece.shape[0].length / 2),
+                    y: 0
+                };
+            }
+
+            function draw() {
+                // Clear board
+                context.fillStyle = '#1a202c'; // Tailwind gray-900
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw settled pieces
+                board.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0) {
+                            context.fillStyle = value;
+                            context.fillRect(x, y, 1, 1);
+                            context.strokeStyle = '#1a202c';
+                            context.lineWidth = 0.1;
+                            context.strokeRect(x, y, 1, 1);
+                        }
+                    });
+                });
+
+                // Draw current piece
+                if (currentPiece) {
+                    context.fillStyle = currentPiece.color;
+                    currentPiece.shape.forEach((row, dy) => {
+                        row.forEach((value, dx) => {
+                            if (value) {
+                                context.fillRect(currentPiece.x + dx, currentPiece.y + dy, 1, 1);
+                                context.strokeStyle = '#1a202c';
+                                context.lineWidth = 0.1;
+                                context.strokeRect(currentPiece.x + dx, currentPiece.y + dy, 1, 1);
+                            }
+                        });
+                    });
+                }
+            }
+            
+            function drawNextPiece() {
+                nextContext.fillStyle = '#1f2937'; // Tailwind gray-800
+                nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+                if (nextPiece) {
+                    nextContext.fillStyle = nextPiece.color;
+                    const offsetX = (4 - nextPiece.shape[0].length) / 2;
+                    const offsetY = (4 - nextPiece.shape.length) / 2;
+                    nextPiece.shape.forEach((row, y) => {
+                        row.forEach((value, x) => {
+                            if (value) {
+                                nextContext.fillRect(x + offsetX, y + offsetY, 1, 1);
+                            }
+                        });
+                    });
+                }
+            }
+
+
+            function movePiece(dx, dy) {
+                if (!collides(dx, dy, currentPiece.shape)) {
+                    currentPiece.x += dx;
+                    currentPiece.y += dy;
+                    return true;
+                }
+                return false;
+            }
+            
+            function drop() {
+                if (!gameOver) {
+                    if (!movePiece(0, 1)) {
+                        solidifyPiece();
+                        removeFullRows();
+                        spawnNewPiece();
+                    }
+                    draw();
+                }
+            }
+            
+            function solidifyPiece() {
+                currentPiece.shape.forEach((row, dy) => {
+                    row.forEach((value, dx) => {
+                        if (value) {
+                            const boardX = currentPiece.x + dx;
+                            const boardY = currentPiece.y + dy;
+                            if (boardY >= 0) {
+                                board[boardY][boardX] = currentPiece.color;
+                            }
+                        }
+                    });
+                });
+            }
+
+            function removeFullRows() {
+                let rowsCleared = 0;
+                outer: for (let y = ROWS - 1; y >= 0; y--) {
+                    for (let x = 0; x < COLS; x++) {
+                        if (board[y][x] === 0) {
+                            continue outer;
+                        }
+                    }
+
+                    // If we reach here, the row is full
+                    const row = board.splice(y, 1)[0].fill(0);
+                    board.unshift(row);
+                    y++; // Re-check the same row index which now has new data
+                    rowsCleared++;
+                }
+                
+                if(rowsCleared > 0) {
+                    // Scoring logic
+                    score += rowsCleared * 100 * rowsCleared; // Bonus for multi-line clears
+                    scoreElement.textContent = score;
+                }
+            }
+
+            function rotate() {
+                const shape = currentPiece.shape;
+                const newShape = shape[0].map((_, colIndex) => shape.map(row => row[colIndex]).reverse());
+                
+                // Prevent rotation into walls or other pieces
+                let originalX = currentPiece.x;
+                if (!collides(0, 0, newShape)) {
+                    currentPiece.shape = newShape;
+                } else {
+                    // Wall kick logic
+                    let kick = 1;
+                    if (!collides(kick, 0, newShape)) {
+                        currentPiece.x += kick;
+                        currentPiece.shape = newShape;
+                    } else {
+                        kick = -1;
+                        if (!collides(kick, 0, newShape)) {
+                            currentPiece.x += kick;
+                            currentPiece.shape = newShape;
+                        } else {
+                            kick = 2; // for I piece
+                             if (!collides(kick, 0, newShape)) {
+                                currentPiece.x += kick;
+                                currentPiece.shape = newShape;
+                             } else {
+                                kick = -2;
+                                if (!collides(kick, 0, newShape)) {
+                                    currentPiece.x += kick;
+                                    currentPiece.shape = newShape;
+                                }
+                             }
+                        }
+                    }
+                }
+                draw();
+            }
+
+            function collides(dx, dy, shape) {
+                for (let y = 0; y < shape.length; y++) {
+                    for (let x = 0; x < shape[y].length; x++) {
+                        if (shape[y][x]) {
+                            const newX = currentPiece.x + x + dx;
+                            const newY = currentPiece.y + y + dy;
+                            if (newX < 0 || newX >= COLS || newY >= ROWS || (board[newY] && board[newY][newX] !== 0)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function spawnNewPiece() {
+                currentPiece = nextPiece;
+                nextPiece = getRandomPiece();
+                drawNextPiece();
+                if (collides(0, 0, currentPiece.shape)) {
+                    // Game Over
+                    gameOver = true;
+                    showGameOver();
+                }
+            }
+            
+            function showGameOver() {
+                finalScoreElement.textContent = score;
+                gameOverModal.style.display = 'flex';
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            function resetGame() {
+                board = createBoard();
+                score = 0;
+                scoreElement.textContent = score;
+                gameOver = false;
+                gameOverModal.style.display = 'none';
+                nextPiece = getRandomPiece();
+                spawnNewPiece();
+                startGameLoop();
+            }
+
+            // Game Loop
+            let dropCounter = 0;
+            let dropInterval = 1000; // ms
+            let lastTime = 0;
+            let animationFrameId;
+
+            function update(time = 0) {
+                if (gameOver) return;
+                
+                const deltaTime = time - lastTime;
+                lastTime = time;
+                
+                dropCounter += deltaTime;
+                if (dropCounter > dropInterval) {
+                    drop();
+                    dropCounter = 0;
+                }
+                
+                draw();
+                animationFrameId = requestAnimationFrame(update);
+            }
+            
+            function startGameLoop() {
+                lastTime = 0;
+                dropCounter = 0;
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                update();
+            }
+
+
+            // Controls
+            document.addEventListener('keydown', event => {
+                if (gameOver) return;
+                if (event.code === 'ArrowLeft') movePiece(-1, 0);
+                if (event.code === 'ArrowRight') movePiece(1, 0);
+                if (event.code === 'ArrowDown') drop();
+                if (event.code === 'ArrowUp' || event.code === 'KeyX') rotate();
+                if (event.code === 'Space') { // Hard drop
+                    while(movePiece(0, 1)) {}
+                    solidifyPiece();
+                    removeFullRows();
+                    spawnNewPiece();
+                }
+                draw();
+            });
+
+            // Touch controls
+            document.getElementById('left-button').addEventListener('click', () => !gameOver && movePiece(-1, 0) && draw());
+            document.getElementById('right-button').addEventListener('click', () => !gameOver && movePiece(1, 0) && draw());
+            document.getElementById('down-button').addEventListener('click', () => !gameOver && drop());
+            document.getElementById('rotate-button').addEventListener('click', () => !gameOver && rotate());
+            
+            // Swipe controls for mobile
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchEndX = 0;
+            let touchEndY = 0;
+
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault();
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', e => {
+                e.preventDefault();
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                handleSwipe();
+            }, { passive: false });
+
+
+            function handleSwipe() {
+                if (gameOver) return;
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+                const absDx = Math.abs(dx);
+                const absDy = Math.abs(dy);
+
+                if (absDx > 30 || absDy > 30) { // Threshold
+                    if (absDy > absDx) {
+                        // Vertical swipe
+                        if (dy > 0) {
+                            // Swipe Down
+                            while(movePiece(0, 1)) {}
+                            solidifyPiece();
+                            removeFullRows();
+                            spawnNewPiece();
+                        }
+                    } else {
+                        // Horizontal swipe
+                        if (dx > 0) {
+                            movePiece(1, 0); // Swipe Right
+                        } else {
+                            movePiece(-1, 0); // Swipe Left
+                        }
+                    }
+                    draw();
+                }
+            }
+
+
+            restartButton.addEventListener('click', resetGame);
+            
+            window.addEventListener('resize', resizeGame);
+            
+            // Initial setup
+            resizeGame();
+            resetGame();
+        });
+    </script>
+</body>
+</html>
