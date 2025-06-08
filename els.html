@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>响应式俄罗斯方块</title>
+    <title>AI 俄罗斯方块 (高速版)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
@@ -23,12 +23,16 @@
         #game-board {
             touch-action: none; /* 防止在游戏区域滑动时滚动页面 */
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-lg mx-auto flex flex-col items-center">
-        <h1 class="text-4xl font-bold mb-4 tracking-wider">俄罗斯方块</h1>
+        <h1 class="text-4xl font-bold mb-4 tracking-wider">AI 俄罗斯方块</h1>
 
         <div class="w-full flex flex-row items-start justify-center gap-4">
             <!-- 游戏主区域 -->
@@ -51,6 +55,15 @@
                     <h2 class="text-xl font-bold mb-2">下一个</h2>
                     <canvas id="next-piece-canvas" class="mx-auto"></canvas>
                 </div>
+                <div class="bg-gray-800 p-4 rounded-lg shadow-lg text-center">
+                     <h2 class="text-xl font-bold mb-2">AI 助手</h2>
+                    <button id="hint-button" class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold transition-transform transform hover:scale-105 flex items-center justify-center gap-2">
+                        <span>战略指导 ✨</span>
+                    </button>
+                     <button id="autoplay-button" class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold transition-transform transform hover:scale-105 flex items-center justify-center gap-2 mt-2">
+                        <span>AI 自动演示 🤖</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -72,11 +85,12 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
         </div>
-        <p class="mt-4 text-gray-400 text-sm hidden md:block">使用方向键移动和旋转方块</p>
+        <p class="mt-4 text-gray-400 text-sm hidden md:block">使用方向键移动和旋转方块，按空格键快速下落</p>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Element selectors
             const canvas = document.getElementById('game-board');
             const context = canvas.getContext('2d');
             const nextCanvas = document.getElementById('next-piece-canvas');
@@ -85,45 +99,47 @@
             const gameOverModal = document.getElementById('game-over-modal');
             const finalScoreElement = document.getElementById('final-score');
             const restartButton = document.getElementById('restart-button');
+            const hintButton = document.getElementById('hint-button');
+            const autoPlayButton = document.getElementById('autoplay-button');
 
+            // Game constants
             const COLS = 10;
             const ROWS = 20;
-            let blockSize; // Block size will be calculated dynamically
+            let blockSize; 
 
+            // Game state
             let board = [];
             let score = 0;
             let gameOver = false;
             let currentPiece;
             let nextPiece;
+            let hint = null;
+            let isAutoPlaying = false;
+            let autoPlayIntervalId = null;
+
 
             const PIECES = [
-                { shape: [[1, 1, 1, 1]], color: '#00F0F0' }, // I
-                { shape: [[1, 1, 0], [0, 1, 1]], color: '#F0A000' }, // Z
-                { shape: [[0, 1, 1], [1, 1, 0]], color: '#00F000' }, // S
-                { shape: [[1, 1, 1], [0, 1, 0]], color: '#A000F0' }, // T
-                { shape: [[1, 1], [1, 1]], color: '#F0F000' },       // O
-                { shape: [[1, 0, 0], [1, 1, 1]], color: '#0000F0' }, // L
-                { shape: [[0, 0, 1], [1, 1, 1]], color: '#F00000' }  // J
+                { name: 'I', shape: [[1, 1, 1, 1]], color: '#00F0F0' },
+                { name: 'Z', shape: [[1, 1, 0], [0, 1, 1]], color: '#F0A000' },
+                { name: 'S', shape: [[0, 1, 1], [1, 1, 0]], color: '#00F000' },
+                { name: 'T', shape: [[1, 1, 1], [0, 1, 0]], color: '#A000F0' },
+                { name: 'O', shape: [[1, 1], [1, 1]], color: '#F0F000' },
+                { name: 'L', shape: [[1, 0, 0], [1, 1, 1]], color: '#0000F0' },
+                { name: 'J', shape: [[0, 0, 1], [1, 1, 1]], color: '#F00000' }
             ];
 
             function resizeGame() {
                 const screenHeight = window.innerHeight * 0.9;
-                const screenWidth = window.innerWidth;
-                
                 const gameArea = document.querySelector('.w-full.max-w-lg');
-                const availableWidth = gameArea.clientWidth * (2/3); // Game board takes up 2/3 of the width
-
-                // Calculate block size based on both height and width to fit the screen
+                const availableWidth = gameArea.clientWidth * (2/3); 
                 const blockSizeByHeight = Math.floor((screenHeight - 100) / ROWS);
                 const blockSizeByWidth = Math.floor(availableWidth / COLS);
                 blockSize = Math.min(blockSizeByHeight, blockSizeByWidth);
                 
-                // Set canvas dimensions
                 canvas.width = COLS * blockSize;
                 canvas.height = ROWS * blockSize;
                 context.scale(blockSize, blockSize);
 
-                // Set next piece canvas dimensions
                 nextCanvas.width = 4 * blockSize;
                 nextCanvas.height = 4 * blockSize;
                 nextContext.scale(blockSize, blockSize);
@@ -140,19 +156,16 @@
                 const type = Math.floor(Math.random() * PIECES.length);
                 const piece = PIECES[type];
                 return {
-                    shape: piece.shape,
-                    color: piece.color,
+                    ...piece,
                     x: Math.floor(COLS / 2) - Math.floor(piece.shape[0].length / 2),
                     y: 0
                 };
             }
 
             function draw() {
-                // Clear board
-                context.fillStyle = '#1a202c'; // Tailwind gray-900
+                context.fillStyle = '#1a202c';
                 context.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Draw settled pieces
                 board.forEach((row, y) => {
                     row.forEach((value, x) => {
                         if (value !== 0) {
@@ -165,7 +178,10 @@
                     });
                 });
 
-                // Draw current piece
+                if (hint && !isAutoPlaying) {
+                    drawHint();
+                }
+
                 if (currentPiece) {
                     context.fillStyle = currentPiece.color;
                     currentPiece.shape.forEach((row, dy) => {
@@ -180,9 +196,29 @@
                     });
                 }
             }
+
+            function drawHint() {
+                context.globalAlpha = 0.3;
+                context.fillStyle = hint.color;
+                hint.shape.forEach((row, dy) => {
+                    row.forEach((value, dx) => {
+                        if (value) {
+                            context.fillRect(hint.x + dx, hint.y + dy, 1, 1);
+                        }
+                    });
+                });
+                context.globalAlpha = 1.0;
+            }
             
+            function clearHint() {
+                if(hint) {
+                    hint = null;
+                    draw();
+                }
+            }
+
             function drawNextPiece() {
-                nextContext.fillStyle = '#1f2937'; // Tailwind gray-800
+                nextContext.fillStyle = '#1f2937';
                 nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
                 if (nextPiece) {
                     nextContext.fillStyle = nextPiece.color;
@@ -198,9 +234,10 @@
                 }
             }
 
-
             function movePiece(dx, dy) {
-                if (!collides(dx, dy, currentPiece.shape)) {
+                if (isAutoPlaying) return;
+                clearHint();
+                if (!collides(currentPiece, dx, dy, currentPiece.shape)) {
                     currentPiece.x += dx;
                     currentPiece.y += dy;
                     return true;
@@ -209,6 +246,8 @@
             }
             
             function drop() {
+                if (isAutoPlaying) return;
+                clearHint();
                 if (!gameOver) {
                     if (!movePiece(0, 1)) {
                         solidifyPiece();
@@ -241,65 +280,63 @@
                             continue outer;
                         }
                     }
-
-                    // If we reach here, the row is full
                     const row = board.splice(y, 1)[0].fill(0);
                     board.unshift(row);
-                    y++; // Re-check the same row index which now has new data
+                    y++;
                     rowsCleared++;
                 }
                 
                 if(rowsCleared > 0) {
-                    // Scoring logic
-                    score += rowsCleared * 100 * rowsCleared; // Bonus for multi-line clears
+                    score += rowsCleared * 100 * rowsCleared;
                     scoreElement.textContent = score;
                 }
             }
 
-            function rotate() {
-                const shape = currentPiece.shape;
-                const newShape = shape[0].map((_, colIndex) => shape.map(row => row[colIndex]).reverse());
+            function rotate(piece) {
+                const p = JSON.parse(JSON.stringify(piece));
+                const shape = p.shape;
+                p.shape = shape[0].map((_, colIndex) => shape.map(row => row[colIndex]).reverse());
                 
-                // Prevent rotation into walls or other pieces
-                let originalX = currentPiece.x;
-                if (!collides(0, 0, newShape)) {
-                    currentPiece.shape = newShape;
-                } else {
-                    // Wall kick logic
+                if (collides(p, 0, 0, p.shape)) {
                     let kick = 1;
-                    if (!collides(kick, 0, newShape)) {
-                        currentPiece.x += kick;
-                        currentPiece.shape = newShape;
+                     if (!collides(p, kick, 0, p.shape)) {
+                        p.x += kick;
                     } else {
                         kick = -1;
-                        if (!collides(kick, 0, newShape)) {
-                            currentPiece.x += kick;
-                            currentPiece.shape = newShape;
+                        if (!collides(p, kick, 0, p.shape)) {
+                           p.x += kick;
                         } else {
-                            kick = 2; // for I piece
-                             if (!collides(kick, 0, newShape)) {
-                                currentPiece.x += kick;
-                                currentPiece.shape = newShape;
-                             } else {
-                                kick = -2;
-                                if (!collides(kick, 0, newShape)) {
-                                    currentPiece.x += kick;
-                                    currentPiece.shape = newShape;
+                            kick = (p.name === 'I') ? 2 : 0;
+                            if (kick !== 0 && !collides(p, kick, 0, p.shape)) {
+                                p.x += kick;
+                            } else {
+                                kick = (p.name === 'I') ? -2 : 0;
+                                if (kick !== 0 && !collides(p, kick, 0, p.shape)) {
+                                    p.x += kick;
+                                } else {
+                                    return piece;
                                 }
-                             }
+                            }
                         }
                     }
                 }
+                return p;
+            }
+
+            function handleRotate() {
+                if (isAutoPlaying) return;
+                clearHint();
+                currentPiece = rotate(currentPiece);
                 draw();
             }
 
-            function collides(dx, dy, shape) {
+            function collides(piece, dx, dy, shape) {
                 for (let y = 0; y < shape.length; y++) {
                     for (let x = 0; x < shape[y].length; x++) {
                         if (shape[y][x]) {
-                            const newX = currentPiece.x + x + dx;
-                            const newY = currentPiece.y + y + dy;
-                            if (newX < 0 || newX >= COLS || newY >= ROWS || (board[newY] && board[newY][newX] !== 0)) {
+                            const newX = piece.x + x + dx;
+                            const newY = piece.y + y + dy;
+                            if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY] && board[newY][newX] !== 0)) {
                                 return true;
                             }
                         }
@@ -312,9 +349,9 @@
                 currentPiece = nextPiece;
                 nextPiece = getRandomPiece();
                 drawNextPiece();
-                if (collides(0, 0, currentPiece.shape)) {
-                    // Game Over
+                if (collides(currentPiece, 0, 0, currentPiece.shape)) {
                     gameOver = true;
+                    stopAutoPlay();
                     showGameOver();
                 }
             }
@@ -324,58 +361,225 @@
                 gameOverModal.style.display = 'flex';
                 cancelAnimationFrame(animationFrameId);
             }
+            
+            function stopNormalGame() {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
 
             function resetGame() {
+                stopAutoPlay();
                 board = createBoard();
                 score = 0;
                 scoreElement.textContent = score;
                 gameOver = false;
+                clearHint();
                 gameOverModal.style.display = 'none';
                 nextPiece = getRandomPiece();
                 spawnNewPiece();
                 startGameLoop();
             }
 
-            // Game Loop
             let dropCounter = 0;
-            let dropInterval = 1000; // ms
+            let dropInterval = 1000;
             let lastTime = 0;
             let animationFrameId;
 
             function update(time = 0) {
-                if (gameOver) return;
-                
+                if (gameOver || isAutoPlaying) return;
                 const deltaTime = time - lastTime;
                 lastTime = time;
-                
                 dropCounter += deltaTime;
                 if (dropCounter > dropInterval) {
                     drop();
                     dropCounter = 0;
                 }
-                
                 draw();
                 animationFrameId = requestAnimationFrame(update);
             }
             
             function startGameLoop() {
+                if (animationFrameId) return;
                 lastTime = 0;
                 dropCounter = 0;
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
-                }
                 update();
+            }
+            
+            // --- AI Logic ---
+
+            function getHint() {
+                if (gameOver || !currentPiece || isAutoPlaying) return;
+                const bestMove = calculateBestMove();
+                if(bestMove) {
+                    hint = {
+                        shape: bestMove.piece.shape,
+                        x: bestMove.piece.x,
+                        y: bestMove.y,
+                        color: currentPiece.color
+                    };
+                    draw();
+                }
+            }
+            
+            function toggleAutoPlay() {
+                isAutoPlaying = !isAutoPlaying;
+                if (isAutoPlaying) {
+                    startAutoPlay();
+                } else {
+                    stopAutoPlay();
+                }
+            }
+
+            function startAutoPlay() {
+                stopNormalGame();
+                clearHint();
+                hintButton.disabled = true;
+                autoPlayButton.innerHTML = `<span>停止演示 ⏹️</span>`;
+                autoPlayButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                autoPlayButton.classList.add('bg-red-600', 'hover:bg-red-700');
+
+                if (autoPlayIntervalId) clearInterval(autoPlayIntervalId);
+                autoPlayIntervalId = setInterval(autoPlayStep, 200); // AI makes a move every 200ms
+            }
+
+            function stopAutoPlay() {
+                isAutoPlaying = false;
+                if(autoPlayIntervalId) {
+                    clearInterval(autoPlayIntervalId);
+                    autoPlayIntervalId = null;
+                }
+                hintButton.disabled = false;
+                autoPlayButton.innerHTML = `<span>AI 自动演示 🤖</span>`;
+                autoPlayButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                autoPlayButton.classList.add('bg-green-600', 'hover:bg-green-700');
+                if (!gameOver) {
+                    startGameLoop();
+                }
+            }
+            
+            function autoPlayStep() {
+                if (gameOver || !currentPiece) {
+                    stopAutoPlay();
+                    return;
+                }
+                const bestMove = calculateBestMove();
+                if(bestMove) {
+                    currentPiece = bestMove.piece;
+                    while(!collides(currentPiece, 0, 1, currentPiece.shape)) {
+                        currentPiece.y++;
+                    }
+                    solidifyPiece();
+                    removeFullRows();
+                    spawnNewPiece();
+                    draw();
+                } else {
+                    // This can happen if no move is possible, leading to game over.
+                    gameOver = true;
+                    stopAutoPlay();
+                    showGameOver();
+                }
+            }
+
+            function calculateBestMove() {
+                let bestScore = -Infinity;
+                let bestMove = null;
+
+                let pieceForEval = JSON.parse(JSON.stringify(currentPiece));
+
+                // Iterate through all 4 rotations
+                for (let r = 0; r < 4; r++) {
+                    // Iterate through all possible horizontal positions
+                    for (let x = -pieceForEval.shape[0].length; x < COLS; x++) {
+                        let movedPiece = { ...pieceForEval, x: x, y: 0 };
+                        
+                        if (collides(movedPiece, 0, 0, movedPiece.shape)) continue;
+                        
+                        let finalY = movedPiece.y;
+                        while(!collides(movedPiece, 0, 1, movedPiece.shape)) {
+                            movedPiece.y++;
+                            finalY = movedPiece.y;
+                        }
+
+                        let tempBoard = board.map(row => [...row]);
+                        movedPiece.shape.forEach((row, dy) => {
+                            row.forEach((val, dx) => {
+                                if(val) {
+                                    const boardY = movedPiece.y + dy;
+                                    const boardX = movedPiece.x + dx;
+                                    if(boardY >= 0) {
+                                       tempBoard[boardY][boardX] = 1;
+                                    }
+                                }
+                            });
+                        });
+                        
+                        const currentScore = evaluateBoard(tempBoard);
+
+                        if (currentScore > bestScore) {
+                            bestScore = currentScore;
+                            bestMove = { piece: movedPiece, y: finalY };
+                        }
+                    }
+                    pieceForEval = rotate(pieceForEval);
+                }
+                return bestMove;
+            }
+
+            function evaluateBoard(currentBoard) {
+                const weightAggregateHeight = 0.510066;
+                const weightCompletedLines = 0.760666;
+                const weightHoles = 0.35663;
+                const weightBumpiness = 0.184483;
+
+                const heights = Array(COLS).fill(0);
+                for (let x = 0; x < COLS; x++) {
+                    for (let y = 0; y < ROWS; y++) {
+                        if (currentBoard[y][x] !== 0) {
+                            heights[x] = ROWS - y;
+                            break;
+                        }
+                    }
+                }
+                
+                const aggregateHeight = heights.reduce((sum, h) => sum + h, 0);
+
+                let completedLines = 0;
+                for (let y = 0; y < ROWS; y++) {
+                    if (currentBoard[y].every(cell => cell !== 0)) {
+                        completedLines++;
+                    }
+                }
+
+                let holes = 0;
+                for (let x = 0; x < COLS; x++) {
+                    let blockFound = false;
+                    for (let y = 0; y < ROWS; y++) {
+                        if (currentBoard[y][x] !== 0) {
+                            blockFound = true;
+                        } else if (blockFound) {
+                            holes++;
+                        }
+                    }
+                }
+
+                let bumpiness = 0;
+                for (let x = 0; x < COLS - 1; x++) {
+                    bumpiness += Math.abs(heights[x] - heights[x+1]);
+                }
+
+                return weightCompletedLines * completedLines - weightAggregateHeight * aggregateHeight - weightHoles * holes - weightBumpiness * bumpiness;
             }
 
 
-            // Controls
+            // --- Event Listeners ---
             document.addEventListener('keydown', event => {
-                if (gameOver) return;
+                if (isAutoPlaying || gameOver) return;
                 if (event.code === 'ArrowLeft') movePiece(-1, 0);
                 if (event.code === 'ArrowRight') movePiece(1, 0);
                 if (event.code === 'ArrowDown') drop();
-                if (event.code === 'ArrowUp' || event.code === 'KeyX') rotate();
-                if (event.code === 'Space') { // Hard drop
+                if (event.code === 'ArrowUp' || event.code === 'KeyX') handleRotate();
+                if (event.code === 'Space') {
+                    clearHint();
                     while(movePiece(0, 1)) {}
                     solidifyPiece();
                     removeFullRows();
@@ -383,65 +587,43 @@
                 }
                 draw();
             });
-
-            // Touch controls
-            document.getElementById('left-button').addEventListener('click', () => !gameOver && movePiece(-1, 0) && draw());
-            document.getElementById('right-button').addEventListener('click', () => !gameOver && movePiece(1, 0) && draw());
-            document.getElementById('down-button').addEventListener('click', () => !gameOver && drop());
-            document.getElementById('rotate-button').addEventListener('click', () => !gameOver && rotate());
             
-            // Swipe controls for mobile
+            document.getElementById('left-button').addEventListener('click', () => !isAutoPlaying && !gameOver && movePiece(-1, 0) && draw());
+            document.getElementById('right-button').addEventListener('click', () => !isAutoPlaying && !gameOver && movePiece(1, 0) && draw());
+            document.getElementById('down-button').addEventListener('click', () => !isAutoPlaying && !gameOver && drop());
+            document.getElementById('rotate-button').addEventListener('click', () => !isAutoPlaying && !gameOver && handleRotate());
+            hintButton.addEventListener('click', getHint);
+            autoPlayButton.addEventListener('click', toggleAutoPlay);
+            
             let touchStartX = 0;
             let touchStartY = 0;
-            let touchEndX = 0;
-            let touchEndY = 0;
 
-            canvas.addEventListener('touchstart', e => {
-                e.preventDefault();
-                touchStartX = e.changedTouches[0].screenX;
-                touchStartY = e.changedTouches[0].screenY;
-            }, { passive: false });
+            canvas.addEventListener('touchstart', e => { if (isAutoPlaying || gameOver) return; e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY;}, { passive: false });
+            canvas.addEventListener('touchend', e => { if (isAutoPlaying || gameOver) return; e.preventDefault(); handleSwipe(e.changedTouches[0].screenX, e.changedTouches[0].screenY);}, { passive: false });
 
-            canvas.addEventListener('touchend', e => {
-                e.preventDefault();
-                touchEndX = e.changedTouches[0].screenX;
-                touchEndY = e.changedTouches[0].screenY;
-                handleSwipe();
-            }, { passive: false });
-
-
-            function handleSwipe() {
-                if (gameOver) return;
+            function handleSwipe(touchEndX, touchEndY) {
                 const dx = touchEndX - touchStartX;
                 const dy = touchEndY - touchStartY;
-                const absDx = Math.abs(dx);
-                const absDy = Math.abs(dy);
-
-                if (absDx > 30 || absDy > 30) { // Threshold
-                    if (absDy > absDx) {
-                        // Vertical swipe
-                        if (dy > 0) {
-                            // Swipe Down
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                    if (Math.abs(dy) > Math.abs(dx)) {
+                        if (dy > 0) { // Swipe Down
+                            clearHint();
                             while(movePiece(0, 1)) {}
                             solidifyPiece();
                             removeFullRows();
                             spawnNewPiece();
+                        } else { // Swipe Up
+                           handleRotate();
                         }
                     } else {
-                        // Horizontal swipe
-                        if (dx > 0) {
-                            movePiece(1, 0); // Swipe Right
-                        } else {
-                            movePiece(-1, 0); // Swipe Left
-                        }
+                        if (dx > 0) movePiece(1, 0);
+                        else movePiece(-1, 0);
                     }
                     draw();
                 }
             }
 
-
             restartButton.addEventListener('click', resetGame);
-            
             window.addEventListener('resize', resizeGame);
             
             // Initial setup
