@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>世界时钟 | World Clock</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Luxon.js for Timezone Management -->
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+
+    <style>
+        /* CSS Reset and Base Styles */
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --sub-text-color: #666666;
+            --border-color: #e5e7eb;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --accent-color: #3b82f6;
+            --accent-color-hover: #2563eb;
+            --icon-bg-color: #e5e7eb;
+            --icon-bg-color-hover: #d1d5db;
+            --modal-overlay-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .dark-theme {
+            --bg-color: #121212;
+            --card-bg-color: #1e1e1e;
+            --text-color: #e5e5e5;
+            --sub-text-color: #a0a0a0;
+            --border-color: #333333;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --accent-color: #60a5fa;
+            --accent-color-hover: #3b82f6;
+            --icon-bg-color: #333333;
+            --icon-bg-color-hover: #444444;
+            --modal-overlay-color: rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .theme-switcher {
+            background-color: var(--icon-bg-color);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .theme-switcher:hover {
+            background-color: var(--icon-bg-color-hover);
+        }
+
+        .theme-switcher svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--text-color);
+        }
+
+        /* Search Section */
+        .search-container {
+            position: relative;
+            margin-bottom: 2.5rem;
+        }
+
+        .search-wrapper {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        #city-search {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg-color);
+            color: var(--text-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #city-search:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        #select-city-btn {
+            padding: 0.75rem 1.25rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #select-city-btn:hover {
+            background-color: var(--accent-color-hover);
+        }
+
+        #suggestions-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        #suggestions-box ul { list-style: none; }
+        #suggestions-box li {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #suggestions-box li:hover { background-color: var(--bg-color); }
+        #suggestions-box li:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+
+        /* Clocks Grid */
+        #clocks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .clock-card {
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -2px var(--shadow-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .clock-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -4px var(--shadow-color);
+        }
+        
+        .remove-btn {
+            position: absolute; top: 10px; right: 10px;
+            background: none; border: none; cursor: pointer;
+            color: var(--sub-text-color); font-size: 1.5rem;
+            line-height: 1; opacity: 0.5; transition: opacity 0.2s;
+        }
+
+        .clock-card:hover .remove-btn { opacity: 1; }
+        .remove-btn:hover { color: var(--accent-color); }
+
+        .city-info { display: flex; align-items: center; margin-bottom: 1rem; }
+        .flag-icon {
+            width: 40px;
+            height: 30px;
+            margin-right: 1rem;
+            border-radius: 4px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .city-details { flex-grow: 1; }
+        .city-name { font-size: 1.5rem; font-weight: 600; }
+        .country-name { font-size: 0.9rem; color: var(--sub-text-color); }
+        .time-display { font-size: 3rem; font-weight: 700; letter-spacing: -1px; text-align: right; }
+        .time-seconds { font-size: 1.5rem; font-weight: 500; opacity: 0.7; margin-left: 0.25rem; }
+        .timezone-info { font-size: 0.9rem; color: var(--sub-text-color); text-align: right; margin-top: 0.25rem; }
+        
+        /* City Selection Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: var(--modal-overlay-color);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; opacity: 0;
+            visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--card-bg-color);
+            padding: 2rem; border-radius: 12px;
+            width: 90%; max-width: 600px;
+            max-height: 80vh;
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 25px var(--shadow-color);
+            transform: scale(0.95); transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-header h2 { font-size: 1.5rem; }
+        .modal-close-btn { font-size: 2rem; font-weight: 300; cursor: pointer; border: none; background: none; color: var(--text-color); }
+        .modal-city-list { list-style: none; overflow-y: auto; }
+        .modal-city-list li {
+            display: flex; align-items: center;
+            padding: 0.75rem 1rem; border-radius: 8px;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        .modal-city-list li:hover { background-color: var(--bg-color); }
+        .modal-city-list li .flag-icon { margin-right: 1.5rem; }
+        .modal-city-list li .city-details { text-align: left; }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header h1 { font-size: 2rem; }
+            .time-display { font-size: 2.5rem; }
+            .city-name { font-size: 1.25rem; }
+            .search-wrapper { flex-direction: column; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 1.5rem 1rem; }
+            header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            #clocks-grid { grid-template-columns: 1fr; }
+            .modal-content { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>世界时钟</h1>
+            <button class="theme-switcher" id="theme-switcher" aria-label="切换主题">
+                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.106a.75.75 0 010 1.06l-1.591 1.59a.75.75 0 11-1.06-1.06l1.59-1.59a.75.75 0 011.06 0zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zM17.836 17.836a.75.75 0 01-1.06 0l-1.59-1.591a.75.75 0 111.06-1.06l1.59 1.59a.75.75 0 010 1.061zM12 18.75a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0v-2.25a.75.75 0 01.75-.75zM5.106 17.836a.75.75 0 010-1.06l1.59-1.591a.75.75 0 111.06 1.06l-1.59 1.59a.75.75 0 01-1.06 0zM4.5 12a.75.75 0 01-.75.75H1.5a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zM6.106 6.106a.75.75 0 011.06 0l1.591 1.59a.75.75 0 11-1.06 1.06L6.106 7.167a.75.75 0 010-1.06z"/></svg>
+                <svg id="theme-icon-moon" style="display:none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21c3.73 0 7.01-1.739 9.002-4.498z" /></svg>
+            </button>
+        </header>
+
+        <section class="search-container">
+            <div class="search-wrapper">
+                <input type="text" id="city-search" placeholder="搜索城市或时区 (例如 London 或 Europe/London)">
+                <button id="select-city-btn">选择城市</button>
+            </div>
+            <div id="suggestions-box" style="display: none;">
+                <ul id="suggestions-list"></ul>
+            </div>
+        </section>
+
+        <main id="clocks-grid"></main>
+    </div>
+
+    <!-- City Selection Modal -->
+    <div class="modal-overlay" id="city-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>选择一个城市</h2>
+                <button class="modal-close-btn" id="modal-close-btn">&times;</button>
+            </div>
+            <ul class="modal-city-list" id="modal-city-list">
+                <!-- City list will be populated by JS -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { DateTime } = luxon;
+            const clocksGrid = document.getElementById('clocks-grid');
+            const citySearchInput = document.getElementById('city-search');
+            const suggestionsBox = document.getElementById('suggestions-box');
+            const suggestionsList = document.getElementById('suggestions-list');
+            const themeSwitcher = document.getElementById('theme-switcher');
+            const themeIconSun = document.getElementById('theme-icon-sun');
+            const themeIconMoon = document.getElementById('theme-icon-moon');
+            const selectCityBtn = document.getElementById('select-city-btn');
+            const cityModal = document.getElementById('city-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const modalCityList = document.getElementById('modal-city-list');
+            
+            // Comprehensive data map for cities
+            const cityDataMap = {
+                'Asia/Shanghai': { city: '北京', country: 'cn', countryName: '中国' },
+                'Asia/Tokyo': { city: '东京', country: 'jp', countryName: '日本' },
+                'Asia/Seoul': { city: '首尔', country: 'kr', countryName: '韩国' },
+                'Asia/Singapore': { city: '新加坡', country: 'sg', countryName: '新加坡' },
+                'Asia/Dubai': { city: '迪拜', country: 'ae', countryName: '阿联酋' },
+                'Europe/London': { city: '伦敦', country: 'gb', countryName: '英国' },
+                'Europe/Paris': { city: '巴黎', country: 'fr', countryName: '法国' },
+                'Europe/Berlin': { city: '柏林', country: 'de', countryName: '德国' },
+                'Europe/Moscow': { city: '莫斯科', country: 'ru', countryName: '俄罗斯' },
+                'Europe/Rome': { city: '罗马', country: 'it', countryName: '意大利' },
+                'America/New_York': { city: '纽约', country: 'us', countryName: '美国' },
+                'America/Los_Angeles': { city: '洛杉矶', country: 'us', countryName: '美国' },
+                'America/Chicago': { city: '芝加哥', country: 'us', countryName: '美国' },
+                'America/Toronto': { city: '多伦多', country: 'ca', countryName: '加拿大' },
+                'America/Sao_Paulo': { city: '圣保罗', country: 'br', countryName: '巴西' },
+                'Australia/Sydney': { city: '悉尼', country: 'au', countryName: '澳大利亚' },
+                'Africa/Cairo': { city: '开罗', country: 'eg', countryName: '埃及' },
+                'Africa/Johannesburg': { city: '约翰内斯堡', country: 'za', countryName: '南非' },
+            };
+
+            let displayedTimezones = new Set();
+            let allTimezones = [];
+            try {
+                allTimezones = Intl.supportedValuesOf('timeZone');
+            } catch (e) {
+                console.warn("Timezone API not supported, search will be limited.");
+                allTimezones = Object.keys(cityDataMap);
+            }
+
+            const initialTimezones = [
+                'Asia/Shanghai', 'Asia/Tokyo', 'Europe/London', 
+                'America/New_York', 'Australia/Sydney', 'Europe/Paris'
+            ];
+
+            // --- Theme Management ---
+            const applyTheme = (theme) => {
+                document.body.classList.toggle('dark-theme', theme === 'dark');
+                themeIconSun.style.display = theme === 'dark' ? 'none' : 'block';
+                themeIconMoon.style.display = theme === 'dark' ? 'block' : 'none';
+            };
+            const toggleTheme = () => {
+                const newTheme = document.body.classList.contains('dark-theme') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            };
+            themeSwitcher.addEventListener('click', toggleTheme);
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+
+            // --- Clock Management ---
+            const getCityInfo = (timezone) => {
+                if (cityDataMap[timezone]) {
+                    return cityDataMap[timezone];
+                }
+                const parts = timezone.split('/');
+                const city = parts[parts.length - 1].replace(/_/g, ' ');
+                return { city, country: 'xx', countryName: parts[0] };
+            };
+
+            const createClockCard = (timezone) => {
+                if (displayedTimezones.has(timezone)) {
+                    console.warn(`Timezone ${timezone} is already displayed.`);
+                    return;
+                }
+                const info = getCityInfo(timezone);
+                const card = document.createElement('div');
+                card.className = 'clock-card';
+                card.dataset.timezone = timezone;
+
+                card.innerHTML = `
+                    <button class="remove-btn" title="移除时钟">&times;</button>
+                    <div class="city-info">
+                        <div class="flag-icon" style="background-image: url('https://flagcdn.com/${info.country}.svg')"></div>
+                        <div class="city-details">
+                            <div class="city-name">${info.city}</div>
+                            <div class="country-name">${info.countryName}</div>
+                        </div>
+                    </div>
+                    <div class="time-display">
+                        <span class="time-main">--:--</span><span class="time-seconds">.--</span>
+                    </div>
+                    <div class="timezone-info">UTC ---</div>
+                `;
+                clocksGrid.appendChild(card);
+                displayedTimezones.add(timezone);
+
+                card.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    clocksGrid.removeChild(card);
+                    displayedTimezones.delete(timezone);
+                    saveClocksToLocalStorage();
+                });
+            };
+
+            const updateClocks = () => {
+                const now = DateTime.now();
+                document.querySelectorAll('.clock-card').forEach(card => {
+                    const timezone = card.dataset.timezone;
+                    if (!timezone) return;
+                    const zonedTime = now.setZone(timezone);
+                    if (!zonedTime.isValid) {
+                        card.querySelector('.time-main').textContent = 'Error';
+                        return;
+                    }
+                    card.querySelector('.time-main').textContent = zonedTime.toFormat('HH:mm');
+                    card.querySelector('.time-seconds').textContent = zonedTime.toFormat(':ss');
+                    card.querySelector('.timezone-info').textContent = `${timezone.split('/').pop().replace(/_/g, ' ')}, UTC${zonedTime.toFormat('Z')}`;
+                });
+            };
+            
+            const saveClocksToLocalStorage = () => {
+                localStorage.setItem('worldClocks', JSON.stringify(Array.from(displayedTimezones)));
+            };
+            
+            const loadClocksFromLocalStorage = () => {
+                const savedClocks = localStorage.getItem('worldClocks');
+                return savedClocks ? JSON.parse(savedClocks) : null;
+            };
+
+            // --- Search and Suggestions ---
+            const showSuggestions = (query) => {
+                if (!query) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+                const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query.toLowerCase())).slice(0, 50);
+                suggestionsList.innerHTML = '';
+                if (filteredTimezones.length > 0) {
+                    filteredTimezones.forEach(tz => {
+                        const li = document.createElement('li');
+                        li.textContent = tz.replace(/_/g, ' ');
+                        li.dataset.timezone = tz;
+                        li.addEventListener('click', () => addClock(tz));
+                        suggestionsList.appendChild(li);
+                    });
+                    suggestionsBox.style.display = 'block';
+                } else {
+                    suggestionsBox.style.display = 'none';
+                }
+            };
+            
+            const addClock = (timezone) => {
+                if (displayedTimezones.has(timezone)) {
+                    alert('该时钟已存在！');
+                    return;
+                }
+                createClockCard(timezone);
+                saveClocksToLocalStorage();
+                // Clear search and hide suggestions
+                citySearchInput.value = '';
+                suggestionsBox.style.display = 'none';
+            };
+
+            citySearchInput.addEventListener('input', () => showSuggestions(citySearchInput.value));
+            document.addEventListener('click', (e) => {
+                if (!suggestionsBox.contains(e.target) && e.target !== citySearchInput) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
+
+            // --- Modal Management ---
+            const populateCityModal = () => {
+                modalCityList.innerHTML = '';
+                for (const timezone in cityDataMap) {
+                    const info = cityDataMap[timezone];
+                    const li = document.createElement('li');
+                    li.dataset.timezone = timezone;
+                    li.innerHTML = `
+                        <div class="flag-icon" style="background-image: url('https://flagcdn.com/${info.country}.svg')"></div>
+                        <div class="city-details">
+                            <div class="city-name">${info.city}</div>
+                            <div class="country-name">${info.countryName}</div>
+                        </div>
+                    `;
+                    li.addEventListener('click', () => {
+                        addClock(timezone);
+                        cityModal.classList.remove('visible');
+                    });
+                    modalCityList.appendChild(li);
+                }
+            };
+            
+            selectCityBtn.addEventListener('click', () => cityModal.classList.add('visible'));
+            modalCloseBtn.addEventListener('click', () => cityModal.classList.remove('visible'));
+            cityModal.addEventListener('click', (e) => {
+                if (e.target === cityModal) {
+                    cityModal.classList.remove('visible');
+                }
+            });
+
+            // --- Initialization ---
+            const initialize = () => {
+                const savedClocks = loadClocksFromLocalStorage();
+                const clocksToRender = savedClocks && savedClocks.length > 0 ? savedClocks : initialTimezones;
+                
+                clocksToRender.forEach(createClockCard);
+                populateCityModal();
+                
+                updateClocks();
+                setInterval(updateClocks, 1000);
+            };
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
